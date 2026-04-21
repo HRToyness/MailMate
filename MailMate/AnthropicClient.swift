@@ -97,28 +97,42 @@ enum VariantPrompt {
         """
     }
 
-    static func userPrompt(for email: MailMessage) -> String {
-        """
+    static func userPrompt(for email: MailMessage, priorThread: [MailMessage] = []) -> String {
+        var out = """
         From: \(email.sender)
         Subject: \(email.subject)
 
         \(email.body)
         """
+        if !priorThread.isEmpty {
+            out += "\n\n---\nEarlier messages in this thread (oldest first):\n"
+            for msg in priorThread.reversed() {
+                out += "\n"
+                if let date = msg.dateReceived { out += "Date: \(date)\n" }
+                out += "From: \(msg.sender)\nSubject: \(msg.subject)\n\n\(msg.body)\n"
+            }
+        }
+        return out
     }
 
-    static func dictationUserPrompt(email: MailMessage, transcript: String) -> String {
-        """
+    static func dictationUserPrompt(email: MailMessage, transcript: String, priorThread: [MailMessage] = []) -> String {
+        var out = """
         Original email I'm replying to:
         From: \(email.sender)
         Subject: \(email.subject)
 
         \(email.body)
-
-        ---
-
-        What I want to say (dictated):
-        \(transcript)
         """
+        if !priorThread.isEmpty {
+            out += "\n\n---\nEarlier messages in this thread (oldest first):\n"
+            for msg in priorThread.reversed() {
+                out += "\n"
+                if let date = msg.dateReceived { out += "Date: \(date)\n" }
+                out += "From: \(msg.sender)\nSubject: \(msg.subject)\n\n\(msg.body)\n"
+            }
+        }
+        out += "\n\n---\n\nWhat I want to say (dictated):\n\(transcript)"
+        return out
     }
 }
 
@@ -129,12 +143,13 @@ struct AnthropicClient: ReplyProvider {
 
     func streamVariants(
         email: MailMessage,
+        priorThread: [MailMessage],
         rules: String,
         onChunk: @escaping @MainActor (String) -> Void
     ) async throws -> String {
         try await streamChat(
             system: VariantPrompt.systemPrompt(rules: rules),
-            user: VariantPrompt.userPrompt(for: email),
+            user: VariantPrompt.userPrompt(for: email, priorThread: priorThread),
             onChunk: onChunk
         )
     }
@@ -142,14 +157,42 @@ struct AnthropicClient: ReplyProvider {
     func streamDictatedReply(
         transcript: String,
         email: MailMessage,
+        priorThread: [MailMessage],
         rules: String,
         onChunk: @escaping @MainActor (String) -> Void
     ) async throws -> String {
         try await streamChat(
             system: VariantPrompt.dictationSystemPrompt(rules: rules),
-            user: VariantPrompt.dictationUserPrompt(email: email, transcript: transcript),
+            user: VariantPrompt.dictationUserPrompt(email: email, transcript: transcript, priorThread: priorThread),
             onChunk: onChunk
         )
+    }
+
+    func testConnection() async throws {
+        let url = URL(string: "https://api.anthropic.com/v1/messages")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        let body: [String: Any] = [
+            "model": model,
+            "max_tokens": 5,
+            "messages": [["role": "user", "content": "ping"]],
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw NSError(domain: "Anthropic", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "No HTTP response"])
+        }
+        if http.statusCode >= 400 {
+            let msg = String(data: data, encoding: .utf8) ?? ""
+            throw NSError(domain: "Anthropic", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(msg)"])
+        }
     }
 
     private func streamChat(

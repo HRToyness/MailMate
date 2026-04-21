@@ -11,8 +11,19 @@ struct SettingsView: View {
     @State private var openaiModel: String = UserDefaults.standard
         .string(forKey: ProviderKind.openai.modelDefaultsKey) ?? ProviderKind.openai.defaultModel
 
+    @State private var whisperLanguage: String = UserDefaults.standard.string(forKey: "whisper_language") ?? ""
+    @State private var includeThread: Bool = UserDefaults.standard.bool(forKey: "include_thread")
+    @State private var launchAtLogin: Bool = LoginItem.isEnabled
+
     @State private var savedFlash = false
     @State private var saveError: String?
+
+    @State private var anthropicTestStatus: TestStatus = .idle
+    @State private var openaiTestStatus: TestStatus = .idle
+
+    enum TestStatus: Equatable {
+        case idle, running, success, failure(String)
+    }
 
     var body: some View {
         Form {
@@ -28,16 +39,53 @@ struct SettingsView: View {
                 SecureField("API key", text: $anthropicKey)
                 TextField("Model", text: $anthropicModel)
                     .help("e.g. claude-sonnet-4-5, claude-opus-4-7")
+                HStack {
+                    Button("Test connection") {
+                        Task { await runTest(.anthropic) }
+                    }
+                    testStatusView(anthropicTestStatus)
+                    Spacer()
+                }
             }
 
             Section("OpenAI (ChatGPT)") {
                 SecureField("API key", text: $openaiKey)
                 TextField("Model", text: $openaiModel)
                     .help("e.g. gpt-4.1-mini, gpt-4o")
+                HStack {
+                    Button("Test connection") {
+                        Task { await runTest(.openai) }
+                    }
+                    testStatusView(openaiTestStatus)
+                    Spacer()
+                }
+            }
+
+            Section("Voice dictation") {
+                Picker("Dictation language", selection: $whisperLanguage) {
+                    Text("Auto-detect").tag("")
+                    Text("English (en)").tag("en")
+                    Text("Dutch (nl)").tag("nl")
+                }
+                .help("Whisper transcription language. Auto-detect works well for most cases; set a specific language if short clips get misdetected.")
+            }
+
+            Section("Context") {
+                Toggle("Include prior thread messages (experimental)", isOn: $includeThread)
+                    .help("Fetches up to 8 earlier messages with the same subject from the same mailbox. May be slow on large mailboxes.")
+            }
+
+            Section("System") {
+                Toggle("Launch MailMate at login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, newValue in
+                        let ok = LoginItem.setEnabled(newValue)
+                        if !ok { launchAtLogin = LoginItem.isEnabled }
+                    }
             }
 
             HStack {
                 Button("Save") { save() }
+                    .keyboardShortcut(.defaultAction)
                 if savedFlash {
                     Text("Saved").foregroundColor(.green).font(.caption)
                 }
@@ -51,7 +99,65 @@ struct SettingsView: View {
             }
         }
         .padding()
-        .frame(width: 520, height: 360)
+        .frame(width: 560, height: 560)
+    }
+
+    @ViewBuilder
+    private func testStatusView(_ status: TestStatus) -> some View {
+        switch status {
+        case .idle:
+            EmptyView()
+        case .running:
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Testing…").font(.caption).foregroundStyle(.secondary)
+            }
+        case .success:
+            Text("✓ OK").font(.caption).foregroundStyle(.green)
+        case .failure(let msg):
+            Text("✗ \(msg)")
+                .font(.caption)
+                .foregroundStyle(.red)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+    }
+
+    @MainActor
+    private func runTest(_ kind: ProviderKind) async {
+        // Save just the specific key + model so the test uses what's in the
+        // UI rather than the previously-persisted values.
+        let keyInUI = (kind == .anthropic) ? anthropicKey : openaiKey
+        let modelInUI = (kind == .anthropic) ? anthropicModel : openaiModel
+        if keyInUI.isEmpty {
+            setTest(kind, .failure("Paste an API key first."))
+            return
+        }
+        setTest(kind, .running)
+        let effectiveModel = modelInUI.trimmingCharacters(in: .whitespaces)
+        let client: ReplyProvider = {
+            switch kind {
+            case .anthropic:
+                return AnthropicClient(apiKey: keyInUI,
+                                       model: effectiveModel.isEmpty ? kind.defaultModel : effectiveModel)
+            case .openai:
+                return OpenAIClient(apiKey: keyInUI,
+                                    model: effectiveModel.isEmpty ? kind.defaultModel : effectiveModel)
+            }
+        }()
+        do {
+            try await client.testConnection()
+            setTest(kind, .success)
+        } catch {
+            setTest(kind, .failure(error.localizedDescription))
+        }
+    }
+
+    private func setTest(_ kind: ProviderKind, _ status: TestStatus) {
+        switch kind {
+        case .anthropic: anthropicTestStatus = status
+        case .openai:    openaiTestStatus = status
+        }
     }
 
     private func save() {
@@ -64,6 +170,9 @@ struct SettingsView: View {
         let trimmedOpenAI = openaiModel.trimmingCharacters(in: .whitespaces)
         let finalOpenAIModel = trimmedOpenAI.isEmpty ? ProviderKind.openai.defaultModel : trimmedOpenAI
         UserDefaults.standard.set(finalOpenAIModel, forKey: ProviderKind.openai.modelDefaultsKey)
+
+        UserDefaults.standard.set(whisperLanguage, forKey: "whisper_language")
+        UserDefaults.standard.set(includeThread, forKey: "include_thread")
 
         var failures: [String] = []
         if !anthropicKey.isEmpty {

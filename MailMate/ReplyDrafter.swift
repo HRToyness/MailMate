@@ -12,9 +12,27 @@ final class ReplyDrafter {
     private var dictationPanel: DictationPanel?
     private var dictationRecorder: AudioRecorder?
     private var dictationEmail: MailMessage?
+    private var dictationPriorThread: [MailMessage] = []
     private var dictationStreamTask: Task<Void, Never>?
     private var dictationCleanupDone = false
     private var recorderObservers: Set<AnyCancellable> = []
+
+    /// Reads the selected message, optionally including prior thread context
+    /// when the `include_thread` pref is on. Falls back to a single-message
+    /// fetch if the thread-aware AppleScript fails.
+    private static func fetchMessageAndOptionalThread() throws -> (MailMessage, [MailMessage]) {
+        if UserDefaults.standard.bool(forKey: "include_thread") {
+            do {
+                let result = try MailBridge.getSelectedMessageWithThread(maxPrior: 8)
+                return (result.selected, result.prior)
+            } catch MailBridgeError.noSelection {
+                throw MailBridgeError.noSelection
+            } catch {
+                Log.write("Thread fetch failed, falling back: \(error.localizedDescription)")
+            }
+        }
+        return (try MailBridge.getSelectedMessage(), [])
+    }
 
     // MARK: - Notifications
 
@@ -47,8 +65,11 @@ final class ReplyDrafter {
         }
 
         let email: MailMessage
+        let priorThread: [MailMessage]
         do {
-            email = try MailBridge.getSelectedMessage()
+            let (sel, prior) = try Self.fetchMessageAndOptionalThread()
+            email = sel
+            priorThread = prior
         } catch MailBridgeError.noSelection {
             notify("Select a message in Mail first.")
             return
@@ -56,7 +77,7 @@ final class ReplyDrafter {
             notify("Error: \(error.localizedDescription)")
             return
         }
-        Log.write("Got message: sender='\(email.sender)' subject='\(email.subject)' body.len=\(email.body.count)")
+        Log.write("Got message: sender='\(email.sender)' subject='\(email.subject)' body.len=\(email.body.count) prior=\(priorThread.count)")
 
         let rules = RulesLoader.load()
         Log.write("Rules loaded (len=\(rules.count))")
@@ -75,7 +96,7 @@ final class ReplyDrafter {
         variantTask = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                let final = try await client.streamVariants(email: email, rules: rules) { accumulated in
+                let final = try await client.streamVariants(email: email, priorThread: priorThread, rules: rules) { accumulated in
                     if Task.isCancelled { return }
                     state.variants = VariantParser.parse(accumulated)
                 }
@@ -126,8 +147,11 @@ final class ReplyDrafter {
         }
 
         let email: MailMessage
+        let priorThread: [MailMessage]
         do {
-            email = try MailBridge.getSelectedMessage()
+            let (sel, prior) = try Self.fetchMessageAndOptionalThread()
+            email = sel
+            priorThread = prior
         } catch MailBridgeError.noSelection {
             notify("Select a message in Mail first.")
             return
@@ -136,12 +160,14 @@ final class ReplyDrafter {
             return
         }
         dictationEmail = email
-        Log.write("Dictation target: sender='\(email.sender)' subject='\(email.subject)' body.len=\(email.body.count)")
+        dictationPriorThread = priorThread
+        Log.write("Dictation target: sender='\(email.sender)' subject='\(email.subject)' body.len=\(email.body.count) prior=\(priorThread.count)")
 
         let granted = await AudioRecorder.ensurePermission()
         guard granted else {
             promptForMicrophone()
             dictationEmail = nil
+            dictationPriorThread = []
             return
         }
 
@@ -186,6 +212,7 @@ final class ReplyDrafter {
               let panel = dictationPanel,
               let email = dictationEmail else { return }
         let state = panel.state
+        let priorThread = dictationPriorThread
 
         // Idempotent: if we're not currently recording, nothing to do.
         guard case .recording = state.phase else { return }
@@ -232,6 +259,7 @@ final class ReplyDrafter {
                 _ = try await client.streamDictatedReply(
                     transcript: transcript,
                     email: email,
+                    priorThread: priorThread,
                     rules: rules
                 ) { accumulated in
                     if Task.isCancelled { return }
@@ -297,6 +325,7 @@ final class ReplyDrafter {
         dictationRecorder = nil
         recorderObservers.removeAll()
         dictationEmail = nil
+        dictationPriorThread = []
         if closeWindow {
             dictationPanel?.close()
         }

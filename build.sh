@@ -25,6 +25,8 @@ SOURCES=(
   MailMate/RulesLoader.swift
   MailMate/RulesEditor.swift
   MailMate/KeychainHelper.swift
+  MailMate/LoginItem.swift
+  MailMate/WelcomeView.swift
   MailMate/SettingsView.swift
   MailMate/VariantPanel.swift
   MailMate/AudioRecorder.swift

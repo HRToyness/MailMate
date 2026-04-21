@@ -11,6 +11,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusController = StatusController()
         NSApp.servicesProvider = self
         NSUpdateDynamicServices()
+
+        // Show the welcome window on first run.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            WelcomeController.showIfFirstRun()
+        }
     }
 
     @objc func draftAIReply(_ pboard: NSPasteboard,

@@ -1,17 +1,17 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 class StatusController: NSObject {
     private var statusItem: NSStatusItem!
     private var settingsWindow: NSWindow?
+    private var providerObserver: NSObjectProtocol?
 
     override init() {
         super.init()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.image = NSImage(
-            systemSymbolName: "envelope.badge",
-            accessibilityDescription: "MailMate"
-        )
+        statusItem.button?.imagePosition = .imageLeft
+        refreshStatusItem()
 
         let menu = NSMenu()
 
@@ -53,6 +53,43 @@ class StatusController: NSObject {
                                 keyEquivalent: "q"))
 
         statusItem.menu = menu
+
+        providerObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.refreshStatusItem() }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .mailMateOpenSettings,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.openSettings() }
+        }
+    }
+
+    deinit {
+        if let obs = providerObserver {
+            NotificationCenter.default.removeObserver(obs)
+        }
+    }
+
+    private func refreshStatusItem() {
+        let kind = ProviderFactory.current
+        let letter: String
+        switch kind {
+        case .anthropic: letter = "A"
+        case .openai:    letter = "O"
+        }
+        statusItem.button?.image = NSImage(
+            systemSymbolName: "envelope.badge",
+            accessibilityDescription: "MailMate (\(kind.displayName))"
+        )
+        statusItem.button?.title = " \(letter)"
+        statusItem.button?.toolTip = "MailMate — active provider: \(kind.displayName)"
     }
 
     @objc private func draft() {

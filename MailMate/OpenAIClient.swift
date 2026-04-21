@@ -7,12 +7,13 @@ struct OpenAIClient: ReplyProvider {
 
     func streamVariants(
         email: MailMessage,
+        priorThread: [MailMessage],
         rules: String,
         onChunk: @escaping @MainActor (String) -> Void
     ) async throws -> String {
         try await streamChat(
             system: VariantPrompt.systemPrompt(rules: rules),
-            user: VariantPrompt.userPrompt(for: email),
+            user: VariantPrompt.userPrompt(for: email, priorThread: priorThread),
             onChunk: onChunk
         )
     }
@@ -20,14 +21,42 @@ struct OpenAIClient: ReplyProvider {
     func streamDictatedReply(
         transcript: String,
         email: MailMessage,
+        priorThread: [MailMessage],
         rules: String,
         onChunk: @escaping @MainActor (String) -> Void
     ) async throws -> String {
         try await streamChat(
             system: VariantPrompt.dictationSystemPrompt(rules: rules),
-            user: VariantPrompt.dictationUserPrompt(email: email, transcript: transcript),
+            user: VariantPrompt.dictationUserPrompt(email: email, transcript: transcript, priorThread: priorThread),
             onChunk: onChunk
         )
+    }
+
+    func testConnection() async throws {
+        let url = URL(string: "https://api.openai.com/v1/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+
+        let body: [String: Any] = [
+            "model": model,
+            "max_tokens": 5,
+            "messages": [["role": "user", "content": "ping"]],
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw NSError(domain: "OpenAI", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "No HTTP response"])
+        }
+        if http.statusCode >= 400 {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            let msg = Self.extractErrorMessage(from: body) ?? body
+            throw NSError(domain: "OpenAI", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(msg)"])
+        }
     }
 
     private func streamChat(

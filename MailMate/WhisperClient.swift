@@ -53,6 +53,10 @@ struct WhisperClient {
 
         appendField(name: "model", value: model)
         appendField(name: "response_format", value: "json")
+        if let lang = UserDefaults.standard.string(forKey: "whisper_language"),
+           !lang.isEmpty {
+            appendField(name: "language", value: lang)
+        }
 
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(audioURL.lastPathComponent)\"\r\n".data(using: .utf8)!)

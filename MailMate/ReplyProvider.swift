@@ -38,6 +38,7 @@ enum ProviderKind: String, CaseIterable, Identifiable {
 protocol ReplyProvider {
     func streamVariants(
         email: MailMessage,
+        priorThread: [MailMessage],
         rules: String,
         onChunk: @escaping @MainActor (String) -> Void
     ) async throws -> String
@@ -45,9 +46,15 @@ protocol ReplyProvider {
     func streamDictatedReply(
         transcript: String,
         email: MailMessage,
+        priorThread: [MailMessage],
         rules: String,
         onChunk: @escaping @MainActor (String) -> Void
     ) async throws -> String
+
+    /// Minimal round-trip to verify the API key + model are valid. Throws on
+    /// any failure (HTTP error, network, parse). Used by the Settings
+    /// "Test connection" buttons.
+    func testConnection() async throws
 }
 
 enum ProviderError: Error, LocalizedError {
