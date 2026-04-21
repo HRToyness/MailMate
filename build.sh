@@ -32,6 +32,9 @@ SOURCES=(
   MailMate/AudioRecorder.swift
   MailMate/WhisperClient.swift
   MailMate/DictationPanel.swift
+  MailMate/SummaryPanel.swift
+  MailMate/TaskCapture.swift
+  MailMate/CalendarContext.swift
 )
 
 rm -rf "$APP" "$TMP"

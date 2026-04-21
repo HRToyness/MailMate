@@ -34,4 +34,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             await ReplyDrafter.shared.runDictation()
         }
     }
+
+    @objc func summarizeThread(_ pboard: NSPasteboard,
+                               userData: String,
+                               error: NSErrorPointer) {
+        Task { @MainActor in
+            await ReplyDrafter.shared.runSummary()
+        }
+    }
+
+    @objc func voiceTask(_ pboard: NSPasteboard,
+                         userData: String,
+                         error: NSErrorPointer) {
+        Task { @MainActor in
+            await ReplyDrafter.shared.runVoiceTask()
+        }
+    }
 }

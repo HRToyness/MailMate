@@ -79,8 +79,8 @@ final class ReplyDrafter {
         }
         Log.write("Got message: sender='\(email.sender)' subject='\(email.subject)' body.len=\(email.body.count) prior=\(priorThread.count)")
 
-        let rules = RulesLoader.load()
-        Log.write("Rules loaded (len=\(rules.count))")
+        let rules = RulesLoader.rules(for: email.sender)
+        Log.write("Rules resolved for sender (len=\(rules.count))")
 
         let state = VariantStreamState()
         variantTask?.cancel()
@@ -250,7 +250,7 @@ final class ReplyDrafter {
         }
 
         state.phase = .generating
-        let rules = RulesLoader.load()
+        let rules = RulesLoader.rules(for: email.sender)
 
         dictationStreamTask?.cancel()
         dictationStreamTask = Task { @MainActor [weak self] in
@@ -332,6 +332,118 @@ final class ReplyDrafter {
         dictationPanel = nil
     }
 
+    // MARK: - Summary flow
+
+    private let summaryPanel = SummaryPanel()
+    private var summaryTask: Task<Void, Never>?
+
+    func runSummary() async {
+        Log.write("=== runSummary() start ===")
+        let kind = ProviderFactory.current
+
+        let client: ReplyProvider
+        do {
+            client = try ProviderFactory.make(kind)
+        } catch let ProviderError.missingAPIKey(k) {
+            notify("Set your \(k.displayName) API key in Settings.")
+            return
+        } catch {
+            notify("Error: \(error.localizedDescription)")
+            return
+        }
+
+        let email: MailMessage
+        let priorThread: [MailMessage]
+        do {
+            // Force-enable thread for summaries so the summary has context
+            // even when the user doesn't have include_thread on globally.
+            let result = try MailBridge.getSelectedMessageWithThread(maxPrior: 10)
+            email = result.selected
+            priorThread = result.prior
+        } catch MailBridgeError.noSelection {
+            notify("Select a message in Mail first.")
+            return
+        } catch {
+            // Fallback to single-message fetch.
+            do {
+                email = try MailBridge.getSelectedMessage()
+                priorThread = []
+            } catch MailBridgeError.noSelection {
+                notify("Select a message in Mail first.")
+                return
+            } catch {
+                notify("Error: \(error.localizedDescription)")
+                return
+            }
+        }
+        Log.write("Summary target: sender='\(email.sender)' subject='\(email.subject)' prior=\(priorThread.count)")
+
+        let state = SummaryState()
+        summaryTask?.cancel()
+        summaryPanel.show(state: state) { [weak self] in
+            self?.summaryTask?.cancel()
+        }
+
+        summaryTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                _ = try await client.streamSummary(email: email, priorThread: priorThread) { accumulated in
+                    if Task.isCancelled { return }
+                    state.text = accumulated
+                }
+                if Task.isCancelled { return }
+                state.isStreaming = false
+            } catch is CancellationError {
+                Log.write("Summary stream cancelled")
+            } catch {
+                Log.write("Summary error: \(error.localizedDescription)")
+                state.isStreaming = false
+                state.errorMessage = error.localizedDescription
+                self.notify("Error: \(error.localizedDescription)")
+            }
+            self.summaryTask = nil
+        }
+    }
+
+    // MARK: - Voice-to-task flow
+
+    private let taskCapture = TaskCapture()
+
+    func runVoiceTask() async {
+        Log.write("=== runVoiceTask() start ===")
+        guard let openaiKey = KeychainHelper.load(for: .openai), !openaiKey.isEmpty else {
+            Log.write("missing OpenAI key for Whisper")
+            notify("Set your OpenAI API key in Settings (required for voice dictation).")
+            return
+        }
+        _ = openaiKey
+
+        let kind = ProviderFactory.current
+        let client: ReplyProvider
+        do {
+            client = try ProviderFactory.make(kind)
+        } catch let ProviderError.missingAPIKey(k) {
+            notify("Set your \(k.displayName) API key in Settings.")
+            return
+        } catch {
+            notify("Error: \(error.localizedDescription)")
+            return
+        }
+
+        let granted = await AudioRecorder.ensurePermission()
+        guard granted else {
+            promptForMicrophone()
+            return
+        }
+        let remindersGranted = await TaskCapture.ensureRemindersPermission()
+        guard remindersGranted else {
+            promptForReminders()
+            return
+        }
+
+        await taskCapture.start(client: client, notifier: { [weak self] msg in self?.notify(msg) })
+    }
+
     // MARK: - Variant pick handler
 
     private func handlePick(_ text: String) {
@@ -387,6 +499,25 @@ final class ReplyDrafter {
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
+
+    private func promptForReminders() {
+        let alert = NSAlert()
+        alert.messageText = "Reminders access needed"
+        alert.informativeText = """
+        MailMate saves dictated tasks to Apple Reminders.
+
+        Open System Settings → Privacy & Security → Reminders and enable MailMate.
+        """
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders") {
                 NSWorkspace.shared.open(url)
             }
         }

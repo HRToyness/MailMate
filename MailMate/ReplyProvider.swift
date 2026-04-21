@@ -51,6 +51,17 @@ protocol ReplyProvider {
         onChunk: @escaping @MainActor (String) -> Void
     ) async throws -> String
 
+    func streamSummary(
+        email: MailMessage,
+        priorThread: [MailMessage],
+        onChunk: @escaping @MainActor (String) -> Void
+    ) async throws -> String
+
+    /// Freeform single-shot chat used by feature modules that don't need the
+    /// structured variant/dictation prompts (e.g. voice-to-task extraction).
+    /// Returns the full text in one go (no streaming).
+    func oneShot(system: String, user: String) async throws -> String
+
     /// Minimal round-trip to verify the API key + model are valid. Throws on
     /// any failure (HTTP error, network, parse). Used by the Settings
     /// "Test connection" buttons.

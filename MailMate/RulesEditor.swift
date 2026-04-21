@@ -1,27 +1,59 @@
 import AppKit
 import SwiftUI
 
-/// A simple built-in editor for the user's `rules.md` so editing works on
-/// Macs that don't have VS Code / a preferred markdown editor set as the
-/// default app for .md files.
+/// A simple built-in editor for the user's rules and per-client overrides.
 @MainActor
 final class RulesEditor: NSObject, NSWindowDelegate {
     static let shared = RulesEditor()
 
+    enum Kind {
+        case base, overrides
+
+        var fileURL: URL {
+            switch self {
+            case .base: return RulesLoader.rulesFileURL
+            case .overrides: return RulesLoader.overridesFileURL
+            }
+        }
+
+        var windowTitle: String {
+            switch self {
+            case .base: return "MailMate — Rules"
+            case .overrides: return "MailMate — Per-client overrides"
+            }
+        }
+
+        var headerText: String {
+            switch self {
+            case .base:
+                return "Markdown. These rules are sent to the model as part of every request."
+            case .overrides:
+                return "Per-sender rule overrides. Each \"## <pattern>\" section replaces the base rules when the sender matches. First match wins."
+            }
+        }
+
+        var defaultText: String {
+            switch self {
+            case .base: return RulesLoader.defaultRules
+            case .overrides: return RulesLoader.defaultOverrides
+            }
+        }
+    }
+
     private var window: NSWindow?
 
-    func show() {
+    func show(editing kind: Kind = .base) {
         if let existing = window {
             NSApp.activate(ignoringOtherApps: true)
             existing.makeKeyAndOrderFront(nil)
             return
         }
 
-        let state = RulesEditorState()
+        let state = RulesEditorState(kind: kind)
         let view = RulesEditorView(state: state)
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "MailMate — Rules"
+        window.title = kind.windowTitle
         window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
         window.isReleasedWhenClosed = false
         window.setContentSize(NSSize(width: 720, height: 560))
@@ -42,16 +74,21 @@ final class RulesEditor: NSObject, NSWindowDelegate {
 
 @MainActor
 final class RulesEditorState: ObservableObject {
+    let kind: RulesEditor.Kind
     @Published var text: String
     @Published var status: String = ""
     @Published var dirty: Bool = false
 
     private var suppressDirty = false
 
-    init() {
-        let loaded = RulesLoader.load()
-        self.text = loaded
-        // Seed: mark clean once initial text is set.
+    init(kind: RulesEditor.Kind) {
+        self.kind = kind
+        let url = kind.fileURL
+        if let existing = try? String(contentsOf: url, encoding: .utf8) {
+            self.text = existing
+        } else {
+            self.text = kind.defaultText
+        }
         self.suppressDirty = true
         self.dirty = false
         self.suppressDirty = false
@@ -65,10 +102,10 @@ final class RulesEditorState: ObservableObject {
 
     func save() {
         do {
-            try text.write(to: RulesLoader.rulesFileURL, atomically: true, encoding: .utf8)
+            try text.write(to: kind.fileURL, atomically: true, encoding: .utf8)
             dirty = false
             status = "Saved"
-            Log.write("Rules saved (len=\(text.count))")
+            Log.write("\(kind.windowTitle) saved (len=\(text.count))")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 if self?.status == "Saved" { self?.status = "" }
             }
@@ -79,18 +116,18 @@ final class RulesEditorState: ObservableObject {
     }
 
     func revealInFinder() {
-        NSWorkspace.shared.activateFileViewerSelecting([RulesLoader.rulesFileURL])
+        NSWorkspace.shared.activateFileViewerSelecting([kind.fileURL])
     }
 
     func resetToDefaults() {
         let alert = NSAlert()
-        alert.messageText = "Reset rules to the built-in defaults?"
-        alert.informativeText = "This replaces the current rules. Your current text will be lost."
+        alert.messageText = "Reset to the built-in defaults?"
+        alert.informativeText = "This replaces the current content. Your current text will be lost."
         alert.addButton(withTitle: "Reset")
         alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn {
             suppressDirty = false
-            text = RulesLoader.defaultRules
+            text = kind.defaultText
             dirty = true
             status = ""
         }
@@ -102,7 +139,7 @@ private struct RulesEditorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("Markdown. These rules are sent to the model as part of every request.")
+            Text(state.kind.headerText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)

@@ -55,8 +55,8 @@ enum VariantPrompt {
     - Do not include any quoted original text or "On <date>, X wrote:" — the draft already has that.
     """
 
-    static func systemPrompt(rules: String) -> String {
-        """
+    static func systemPrompt(rules: String, calendar: String? = nil) -> String {
+        var out = """
         You are an email assistant drafting reply bodies on behalf of the user.
 
         ## User rules
@@ -64,6 +64,19 @@ enum VariantPrompt {
 
         ## Always
         \(baseRules)
+        """
+        if let calendar, !calendar.isEmpty {
+            out += """
+
+
+        ## My calendar
+        Use this to propose ACTUAL free time if the email is about scheduling. Prefer specific proposals over "[CONFIRM — check calendar]" when the calendar clearly shows availability. Still flag [CONFIRM] for commitments outside the shown window.
+
+        \(calendar)
+        """
+        }
+        out += """
+
 
         ## Output format
         Return EXACTLY three variants, each preceded by its marker on its own line:
@@ -79,10 +92,39 @@ enum VariantPrompt {
 
         Do NOT include any text outside these three sections. Do not add preamble.
         """
+        return out
     }
 
-    static func dictationSystemPrompt(rules: String) -> String {
+    static func summarySystemPrompt() -> String {
         """
+        You are an email assistant. Summarize the given email thread concisely in the SAME LANGUAGE as the messages. Focus on:
+
+        1. The core topic and what's being asked of the user.
+        2. Any commitments or deadlines on the table (with dates).
+        3. Outstanding questions that need an answer.
+        4. Who said what (only when it matters for the user's reply).
+
+        Output format (plain text, no preamble):
+        - 1-paragraph executive summary (2-4 sentences).
+        - Bullet list "Action items for you" with at most 5 items. If there are no actions, write "- None." under that heading.
+
+        Do NOT suggest a reply. Do NOT include greetings or meta-commentary.
+        """
+    }
+
+    static func summaryUserPrompt(email: MailMessage, priorThread: [MailMessage]) -> String {
+        var out = "THREAD (most recent last):\n"
+        let ordered = priorThread.reversed() + [email]
+        for (i, m) in ordered.enumerated() {
+            out += "\n--- Message \(i + 1) ---\n"
+            if let d = m.dateReceived { out += "Date: \(d)\n" }
+            out += "From: \(m.sender)\nSubject: \(m.subject)\n\n\(m.body)\n"
+        }
+        return out
+    }
+
+    static func dictationSystemPrompt(rules: String, calendar: String? = nil) -> String {
+        var out = """
         You are an email assistant. The user has dictated, in colloquial speech, what they want to say. Turn that dictation into a proper email reply body that follows their rules.
 
         ## User rules
@@ -95,6 +137,17 @@ enum VariantPrompt {
         - Clean up filler ("eh", "uhm"), false starts, and duplicated phrases. Keep the tone natural, not over-polished.
         - Output ONLY the reply body. No subject line, no signature, no quoted original. One single reply — do NOT produce multiple variants.
         """
+        if let calendar, !calendar.isEmpty {
+            out += """
+
+
+        ## My calendar
+        Use this if the user's dictation involves proposing a meeting time. Prefer specific proposals over generic "let me check" when availability is clear.
+
+        \(calendar)
+        """
+        }
+        return out
     }
 
     static func userPrompt(for email: MailMessage, priorThread: [MailMessage] = []) -> String {
@@ -147,8 +200,9 @@ struct AnthropicClient: ReplyProvider {
         rules: String,
         onChunk: @escaping @MainActor (String) -> Void
     ) async throws -> String {
-        try await streamChat(
-            system: VariantPrompt.systemPrompt(rules: rules),
+        let calendar = await CalendarContext.summaryIfEnabled()
+        return try await streamChat(
+            system: VariantPrompt.systemPrompt(rules: rules, calendar: calendar),
             user: VariantPrompt.userPrompt(for: email, priorThread: priorThread),
             onChunk: onChunk
         )
@@ -161,11 +215,55 @@ struct AnthropicClient: ReplyProvider {
         rules: String,
         onChunk: @escaping @MainActor (String) -> Void
     ) async throws -> String {
-        try await streamChat(
-            system: VariantPrompt.dictationSystemPrompt(rules: rules),
+        let calendar = await CalendarContext.summaryIfEnabled()
+        return try await streamChat(
+            system: VariantPrompt.dictationSystemPrompt(rules: rules, calendar: calendar),
             user: VariantPrompt.dictationUserPrompt(email: email, transcript: transcript, priorThread: priorThread),
             onChunk: onChunk
         )
+    }
+
+    func streamSummary(
+        email: MailMessage,
+        priorThread: [MailMessage],
+        onChunk: @escaping @MainActor (String) -> Void
+    ) async throws -> String {
+        try await streamChat(
+            system: VariantPrompt.summarySystemPrompt(),
+            user: VariantPrompt.summaryUserPrompt(email: email, priorThread: priorThread),
+            onChunk: onChunk
+        )
+    }
+
+    func oneShot(system: String, user: String) async throws -> String {
+        let url = URL(string: "https://api.anthropic.com/v1/messages")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        let body: [String: Any] = [
+            "model": model,
+            "max_tokens": maxTokens,
+            "system": system,
+            "messages": [["role": "user", "content": user]],
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
+            let msg = String(data: data, encoding: .utf8) ?? ""
+            throw NSError(domain: "Anthropic", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(msg)"])
+        }
+        struct APIResponse: Decodable {
+            struct Content: Decodable { let type: String; let text: String? }
+            let content: [Content]
+        }
+        let decoded = try JSONDecoder().decode(APIResponse.self, from: data)
+        let text = decoded.content.first(where: { $0.type == "text" })?.text ?? ""
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func testConnection() async throws {

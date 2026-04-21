@@ -11,8 +11,9 @@ struct OpenAIClient: ReplyProvider {
         rules: String,
         onChunk: @escaping @MainActor (String) -> Void
     ) async throws -> String {
-        try await streamChat(
-            system: VariantPrompt.systemPrompt(rules: rules),
+        let calendar = await CalendarContext.summaryIfEnabled()
+        return try await streamChat(
+            system: VariantPrompt.systemPrompt(rules: rules, calendar: calendar),
             user: VariantPrompt.userPrompt(for: email, priorThread: priorThread),
             onChunk: onChunk
         )
@@ -25,11 +26,60 @@ struct OpenAIClient: ReplyProvider {
         rules: String,
         onChunk: @escaping @MainActor (String) -> Void
     ) async throws -> String {
-        try await streamChat(
-            system: VariantPrompt.dictationSystemPrompt(rules: rules),
+        let calendar = await CalendarContext.summaryIfEnabled()
+        return try await streamChat(
+            system: VariantPrompt.dictationSystemPrompt(rules: rules, calendar: calendar),
             user: VariantPrompt.dictationUserPrompt(email: email, transcript: transcript, priorThread: priorThread),
             onChunk: onChunk
         )
+    }
+
+    func streamSummary(
+        email: MailMessage,
+        priorThread: [MailMessage],
+        onChunk: @escaping @MainActor (String) -> Void
+    ) async throws -> String {
+        try await streamChat(
+            system: VariantPrompt.summarySystemPrompt(),
+            user: VariantPrompt.summaryUserPrompt(email: email, priorThread: priorThread),
+            onChunk: onChunk
+        )
+    }
+
+    func oneShot(system: String, user: String) async throws -> String {
+        let url = URL(string: "https://api.openai.com/v1/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+
+        let body: [String: Any] = [
+            "model": model,
+            "max_tokens": maxTokens,
+            "messages": [
+                ["role": "system", "content": system],
+                ["role": "user", "content": user],
+            ],
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
+            let errBody = String(data: data, encoding: .utf8) ?? ""
+            let msg = Self.extractErrorMessage(from: errBody) ?? errBody
+            throw NSError(domain: "OpenAI", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(msg)"])
+        }
+        struct APIResponse: Decodable {
+            struct Choice: Decodable {
+                struct Message: Decodable { let content: String? }
+                let message: Message
+            }
+            let choices: [Choice]
+        }
+        let decoded = try JSONDecoder().decode(APIResponse.self, from: data)
+        return decoded.choices.first?.message.content?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
     func testConnection() async throws {

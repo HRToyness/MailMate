@@ -33,6 +33,24 @@ class StatusController: NSObject {
         dictateItem.target = self
         menu.addItem(dictateItem)
 
+        let summaryItem = NSMenuItem(
+            title: "Summarize thread…",
+            action: #selector(summarize),
+            keyEquivalent: "s"
+        )
+        summaryItem.keyEquivalentModifierMask = [.command, .shift]
+        summaryItem.target = self
+        menu.addItem(summaryItem)
+
+        let taskItem = NSMenuItem(
+            title: "Dictate a task…",
+            action: #selector(voiceTask),
+            keyEquivalent: "t"
+        )
+        taskItem.keyEquivalentModifierMask = [.command, .shift]
+        taskItem.target = self
+        menu.addItem(taskItem)
+
         menu.addItem(.separator())
 
         let rulesItem = NSMenuItem(title: "Edit rules…",
@@ -40,6 +58,12 @@ class StatusController: NSObject {
                                    keyEquivalent: "")
         rulesItem.target = self
         menu.addItem(rulesItem)
+
+        let overridesItem = NSMenuItem(title: "Edit per-client overrides…",
+                                       action: #selector(editOverrides),
+                                       keyEquivalent: "")
+        overridesItem.target = self
+        menu.addItem(overridesItem)
 
         let settingsItem = NSMenuItem(title: "Settings…",
                                       action: #selector(openSettings),
@@ -104,8 +128,24 @@ class StatusController: NSObject {
         }
     }
 
+    @objc private func summarize() {
+        Task { @MainActor in
+            await ReplyDrafter.shared.runSummary()
+        }
+    }
+
+    @objc private func voiceTask() {
+        Task { @MainActor in
+            await ReplyDrafter.shared.runVoiceTask()
+        }
+    }
+
     @objc private func editRules() {
         RulesLoader.openInEditor()
+    }
+
+    @objc private func editOverrides() {
+        RulesLoader.openInEditor(overrides: true)
     }
 
     @objc private func openSettings() {

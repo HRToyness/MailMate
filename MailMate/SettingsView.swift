@@ -13,6 +13,7 @@ struct SettingsView: View {
 
     @State private var whisperLanguage: String = UserDefaults.standard.string(forKey: "whisper_language") ?? ""
     @State private var includeThread: Bool = UserDefaults.standard.bool(forKey: "include_thread")
+    @State private var includeCalendar: Bool = UserDefaults.standard.bool(forKey: "include_calendar")
     @State private var launchAtLogin: Bool = LoginItem.isEnabled
 
     @State private var savedFlash = false
@@ -73,6 +74,8 @@ struct SettingsView: View {
             Section("Context") {
                 Toggle("Include prior thread messages (experimental)", isOn: $includeThread)
                     .help("Fetches up to 8 earlier messages with the same subject from the same mailbox. May be slow on large mailboxes.")
+                Toggle("Include my calendar when drafting replies", isOn: $includeCalendar)
+                    .help("When drafting a reply that involves scheduling, MailMate includes your next 7 days of busy windows so the model can propose real free times. Requires Calendar permission.")
             }
 
             Section("System") {
@@ -173,6 +176,7 @@ struct SettingsView: View {
 
         UserDefaults.standard.set(whisperLanguage, forKey: "whisper_language")
         UserDefaults.standard.set(includeThread, forKey: "include_thread")
+        UserDefaults.standard.set(includeCalendar, forKey: "include_calendar")
 
         var failures: [String] = []
         if !anthropicKey.isEmpty {
