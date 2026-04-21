@@ -149,7 +149,7 @@
   </div>
   <h1>MailMate</h1>
   <p class="tagline">
-    AI replies for <b>Mail.app</b>, with voice dictation, calendar-aware scheduling, and thread summaries — as a macOS menu bar app. Bring your own API key.
+    Inbox triage, AI replies, voice dictation, thread summaries, calendar-aware scheduling — as a macOS menu bar app for Apple <b>Mail.app</b>. Bring your own API key. Nederlands & English.
   </p>
   <div class="cta-row">
     <a class="cta" href="https://github.com/HRToyness/MailMate/releases/latest/download/MailMate-Installer.dmg">
@@ -159,12 +159,17 @@
       View on GitHub
     </a>
   </div>
-  <div class="small">macOS 14+ · Apple Silicon or Intel · 1.3 MB installer</div>
+  <div class="small">macOS 14+ · Apple Silicon or Intel · 1.4 MB installer · v0.3.0</div>
 </header>
 
 <section>
-  <h2>What it does</h2>
+  <h2>Five things it does</h2>
   <div class="grid">
+    <div class="card">
+      <div class="tag">⌘⇧I</div>
+      <h3>Triage your inbox</h3>
+      <p>One shortcut, a scored view of your unread messages: priority (urgent / normal / low / spam), one-line summary, suggested action. Click a row to jump to that email in Mail. Morning inbox, in 20 seconds.</p>
+    </div>
     <div class="card">
       <div class="tag">⌘⇧R</div>
       <h3>Draft 3 reply options</h3>
@@ -183,17 +188,52 @@
     <div class="card">
       <div class="tag">⌘⇧T</div>
       <h3>Dictate a task</h3>
-      <p>Voice-note a task ("remind me to call Jan Friday about the proposal"), MailMate extracts title / due / notes and saves it to Apple Reminders.</p>
+      <p>Voice-note a task ("remind me to call Jan Friday about the proposal"). MailMate extracts title, notes, and due date, and saves it to Apple Reminders.</p>
     </div>
     <div class="card">
       <div class="tag">Per-sender rules</div>
       <h3>Different clients, different tone</h3>
-      <p>Rule overrides by domain or address. Horticulture clients get industry-specific wording, education clients get warm and patient, default clients get your base rules.</p>
+      <p>Rule overrides by domain or exact address. Horticulture clients get industry-specific wording, education clients get warm and patient, default clients get your base rules.</p>
     </div>
     <div class="card">
       <div class="tag">Calendar-aware</div>
       <h3>Real scheduling proposals</h3>
       <p>Optionally include your next 7 days of busy windows in the prompt, so the model proposes specific free times instead of "[CONFIRM — check calendar]".</p>
+    </div>
+    <div class="card">
+      <div class="tag">🇳🇱 🇬🇧</div>
+      <h3>Nederlands &amp; English UI</h3>
+      <p>Full Dutch localization alongside English. macOS picks the language from your system preferences; override per-app via System Settings → Language &amp; Region.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Small details that add up</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Clipboard restore</h3>
+      <p>After pasting a reply into Mail, MailMate puts your previous clipboard contents back — so your copy buffer isn't silently clobbered every time you draft a reply.</p>
+    </div>
+    <div class="card">
+      <h3>Launch at login</h3>
+      <p>Single toggle in Settings. Menu bar icon shows up automatically after every reboot.</p>
+    </div>
+    <div class="card">
+      <h3>Test connection</h3>
+      <p>A "Test" button next to each provider in Settings does a minimal round-trip and reports success / failure inline — so you know your API key and model are valid before hitting them on a real email.</p>
+    </div>
+    <div class="card">
+      <h3>Active provider badge</h3>
+      <p>The menu bar icon shows an A or O letter next to the envelope so you can see which LLM is currently active (Anthropic vs OpenAI) without opening Settings.</p>
+    </div>
+    <div class="card">
+      <h3>Built-in rules editor</h3>
+      <p>Edit your base rules and per-client overrides in a native editor window — no external markdown editor required.</p>
+    </div>
+    <div class="card">
+      <h3>First-run welcome</h3>
+      <p>Short introduction window on first launch, with a clear prompt to open Settings and paste your API key. Guides the Automation, Accessibility, and Microphone permissions one step at a time.</p>
     </div>
   </div>
 </section>
@@ -236,12 +276,14 @@
 <section>
   <h2>Keyboard shortcuts</h2>
   <div class="shortcuts">
+    <div class="shortcut"><span class="kbd">⌘⇧I</span> <span>Triage inbox</span></div>
     <div class="shortcut"><span class="kbd">⌘⇧R</span> <span>Draft 3 reply options</span></div>
     <div class="shortcut"><span class="kbd">⌘⇧D</span> <span>Dictate a reply</span></div>
     <div class="shortcut"><span class="kbd">⌘⇧S</span> <span>Summarize thread</span></div>
     <div class="shortcut"><span class="kbd">⌘⇧T</span> <span>Dictate a task</span></div>
     <div class="shortcut"><span class="kbd">1 / 2 / 3</span> <span>Pick a variant</span></div>
     <div class="shortcut"><span class="kbd">⌘↩</span> <span>Paste edited reply</span></div>
+    <div class="shortcut"><span class="kbd">esc</span> <span>Cancel / close panel</span></div>
   </div>
   <p class="small">Tip: System Settings → Keyboard → Keyboard Shortcuts → Services — bind system-wide shortcuts for the four main actions so they work from anywhere in macOS.</p>
 </section>
