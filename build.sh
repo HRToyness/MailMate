@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Build MailMate.app without Xcode (Command Line Tools only).
+# Produces a universal (arm64 + x86_64) binary so the .app runs on any Mac.
 # Output: build/MailMate.app
 set -euo pipefail
 
@@ -9,32 +10,53 @@ APP="build/MailMate.app"
 BIN_DIR="$APP/Contents/MacOS"
 RES_DIR="$APP/Contents/Resources"
 SDK="$(xcrun --sdk macosx --show-sdk-path)"
+TMP="build/tmp"
 
-rm -rf "$APP"
-mkdir -p "$BIN_DIR" "$RES_DIR"
-
-swiftc \
-  -sdk "$SDK" \
-  -target arm64-apple-macos14.0 \
-  -O \
-  -parse-as-library \
-  -o "$BIN_DIR/MailMate" \
-  MailMate/MailMateApp.swift \
-  MailMate/AppDelegate.swift \
-  MailMate/Log.swift \
-  MailMate/StatusController.swift \
-  MailMate/ReplyDrafter.swift \
-  MailMate/MailBridge.swift \
-  MailMate/ReplyProvider.swift \
-  MailMate/AnthropicClient.swift \
-  MailMate/OpenAIClient.swift \
-  MailMate/RulesLoader.swift \
-  MailMate/KeychainHelper.swift \
-  MailMate/SettingsView.swift \
-  MailMate/VariantPanel.swift \
-  MailMate/AudioRecorder.swift \
-  MailMate/WhisperClient.swift \
+SOURCES=(
+  MailMate/MailMateApp.swift
+  MailMate/AppDelegate.swift
+  MailMate/Log.swift
+  MailMate/StatusController.swift
+  MailMate/ReplyDrafter.swift
+  MailMate/MailBridge.swift
+  MailMate/ReplyProvider.swift
+  MailMate/AnthropicClient.swift
+  MailMate/OpenAIClient.swift
+  MailMate/RulesLoader.swift
+  MailMate/KeychainHelper.swift
+  MailMate/SettingsView.swift
+  MailMate/VariantPanel.swift
+  MailMate/AudioRecorder.swift
+  MailMate/WhisperClient.swift
   MailMate/DictationPanel.swift
+)
+
+rm -rf "$APP" "$TMP"
+mkdir -p "$BIN_DIR" "$RES_DIR" "$TMP"
+
+build_arch() {
+  local arch="$1"
+  local out="$2"
+  swiftc \
+    -sdk "$SDK" \
+    -target "${arch}-apple-macos14.0" \
+    -O \
+    -parse-as-library \
+    -o "$out" \
+    "${SOURCES[@]}"
+}
+
+echo "Building arm64…"
+build_arch arm64 "$TMP/MailMate-arm64"
+
+echo "Building x86_64…"
+build_arch x86_64 "$TMP/MailMate-x86_64"
+
+echo "Merging with lipo…"
+lipo -create "$TMP/MailMate-arm64" "$TMP/MailMate-x86_64" -output "$BIN_DIR/MailMate"
+lipo -info "$BIN_DIR/MailMate"
+
+rm -rf "$TMP"
 
 # Info.plist: expand $(...) placeholders for standalone (non-Xcode) build.
 sed \
@@ -57,8 +79,8 @@ codesign --force --sign - \
 
 codesign --verify --verbose=2 "$APP"
 
-# Refresh the Services registry so "MailMate/Draft AI reply" appears in
-# System Settings → Keyboard → Keyboard Shortcuts → Services.
+# Refresh the Services registry so "MailMate/Draft AI reply" and
+# "MailMate/Dictate AI reply" appear in System Settings → Keyboard → Services.
 /System/Library/CoreServices/pbs -flush >/dev/null 2>&1 || true
 
 echo
