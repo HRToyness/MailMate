@@ -48,10 +48,17 @@ enum RulesLoader {
         return (try? String(contentsOf: rulesFileURL, encoding: .utf8)) ?? defaultRules
     }
 
+    /// Opens the built-in rules editor window. Falls back to creating the
+    /// rules.md file with defaults if it doesn't exist yet.
     static func openInEditor() {
         if !FileManager.default.fileExists(atPath: rulesFileURL.path) {
             _ = load()
         }
-        NSWorkspace.shared.open(rulesFileURL)
+        // Callers invoke this from AppKit main-thread contexts (menu handler,
+        // SwiftUI button action); assume main-actor isolation to present the
+        // editor window.
+        MainActor.assumeIsolated {
+            RulesEditor.shared.show()
+        }
     }
 }

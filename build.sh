@@ -23,6 +23,7 @@ SOURCES=(
   MailMate/AnthropicClient.swift
   MailMate/OpenAIClient.swift
   MailMate/RulesLoader.swift
+  MailMate/RulesEditor.swift
   MailMate/KeychainHelper.swift
   MailMate/SettingsView.swift
   MailMate/VariantPanel.swift
