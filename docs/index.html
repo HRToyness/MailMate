@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MailMate — AI replies for Mail.app, with voice dictation</title>
+<meta name="description" content="A macOS menu bar app that drafts replies to selected Mail.app messages via Claude or ChatGPT, with voice dictation and calendar-aware scheduling. Bring your own API key.">
+<meta property="og:title" content="MailMate — AI replies for Mail.app">
+<meta property="og:description" content="Draft replies, dictate out loud, summarize threads. Bring your own API key. Your emails never touch our servers.">
+<meta property="og:url" content="https://hrtoyness.github.io/MailMate/">
+<link rel="icon" href="icon.png">
+<style>
+  :root {
+    --indigo: #5c6ef2;
+    --violet: #8c51e5;
+    --bg: #0c0f1c;
+    --bg-soft: #141a2e;
+    --card: #1b2340;
+    --text: #e8ecf8;
+    --muted: #94a0c8;
+    --accent: #ffd17a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: radial-gradient(ellipse at top, #16203d 0%, var(--bg) 60%);
+    min-height: 100vh;
+  }
+  a { color: var(--accent); }
+  .container { max-width: 980px; margin: 0 auto; padding: 32px 24px; }
+  header.hero {
+    text-align: center;
+    padding: 72px 0 48px;
+  }
+  .icon {
+    width: 112px; height: 112px;
+    border-radius: 26px;
+    background: linear-gradient(180deg, var(--indigo), var(--violet));
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    margin-bottom: 24px;
+  }
+  .icon svg { width: 64px; height: 64px; color: white; }
+  h1 {
+    font-size: 44px; letter-spacing: -0.5px; margin: 0 0 10px; line-height: 1.15;
+  }
+  .tagline {
+    font-size: 19px; color: var(--muted); margin: 0 auto 28px; max-width: 640px;
+  }
+  .cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: linear-gradient(180deg, var(--indigo), var(--violet));
+    color: white; text-decoration: none; font-weight: 600;
+    padding: 14px 22px; border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(92,110,242,0.35);
+    transition: transform 0.15s ease;
+  }
+  .cta:hover { transform: translateY(-1px); }
+  .cta-row {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  }
+  .cta.secondary {
+    background: var(--card); color: var(--text);
+    box-shadow: none; border: 1px solid rgba(255,255,255,0.08);
+  }
+  .small { font-size: 13px; color: var(--muted); margin-top: 14px; }
+
+  section { padding: 48px 0; border-top: 1px solid rgba(255,255,255,0.05); }
+  h2 { font-size: 28px; letter-spacing: -0.2px; margin: 0 0 24px; }
+  .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .card {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 6px;
+    background: rgba(255,209,122,0.12); color: var(--accent);
+    font-size: 12px; margin-bottom: 10px; letter-spacing: 0.3px;
+  }
+
+  ol.steps { list-style: none; padding: 0; counter-reset: s; }
+  ol.steps li {
+    counter-increment: s; padding: 16px 0 16px 44px;
+    position: relative; border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before {
+    content: counter(s);
+    position: absolute; left: 0; top: 14px;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(180deg, var(--indigo), var(--violet));
+    color: white; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  ol.steps code {
+    background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px;
+    font-size: 13.5px;
+  }
+
+  .privacy {
+    background: linear-gradient(180deg, rgba(92,110,242,0.1), rgba(140,81,229,0.1));
+    border-radius: 18px; padding: 28px;
+  }
+  .privacy h2 { margin-top: 0; }
+  .privacy ul { margin: 14px 0 0; padding-left: 20px; color: var(--muted); }
+  .privacy ul li { margin-bottom: 6px; }
+
+  footer {
+    padding: 40px 0 60px; text-align: center;
+    color: var(--muted); font-size: 14px;
+  }
+  footer a { color: var(--muted); margin: 0 8px; }
+  .shortcuts {
+    display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    margin-top: 16px;
+  }
+  .shortcut {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card); padding: 12px 14px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .kbd {
+    background: #2a3660; border: 1px solid rgba(255,255,255,0.12);
+    color: white; padding: 2px 7px; border-radius: 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header class="hero">
+  <div class="icon" aria-hidden="true">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="18" width="44" height="28" rx="4" fill="white"/>
+      <path d="M10 20 L32 36 L54 20" stroke="#5c6ef2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <path d="M50 10 L50 18 M46 14 L54 14" stroke="#ffd17a" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <h1>MailMate</h1>
+  <p class="tagline">
+    AI replies for <b>Mail.app</b>, with voice dictation, calendar-aware scheduling, and thread summaries — as a macOS menu bar app. Bring your own API key.
+  </p>
+  <div class="cta-row">
+    <a class="cta" href="https://github.com/HRToyness/MailMate/releases/latest/download/MailMate-Installer.dmg">
+      Download for macOS (universal)
+    </a>
+    <a class="cta secondary" href="https://github.com/HRToyness/MailMate">
+      View on GitHub
+    </a>
+  </div>
+  <div class="small">macOS 14+ · Apple Silicon or Intel · 1.3 MB installer</div>
+</header>
+
+<section>
+  <h2>What it does</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="tag">⌘⇧R</div>
+      <h3>Draft 3 reply options</h3>
+      <p>Select a message in Mail, trigger MailMate, and see Short / Standard / Detailed reply variants stream in side-by-side. Press 1, 2, or 3 to pick, edit inline if you want, then ⌘↩ to paste.</p>
+    </div>
+    <div class="card">
+      <div class="tag">⌘⇧D</div>
+      <h3>Dictate a reply</h3>
+      <p>Press record, say what you want to say in plain Dutch or English. Whisper transcribes, the model cleans it up into a proper reply following your rules, one click to paste.</p>
+    </div>
+    <div class="card">
+      <div class="tag">⌘⇧S</div>
+      <h3>Summarize a thread</h3>
+      <p>One-paragraph summary of a long email thread plus a bullet list of the action items aimed at you. No more re-reading 12 messages before replying.</p>
+    </div>
+    <div class="card">
+      <div class="tag">⌘⇧T</div>
+      <h3>Dictate a task</h3>
+      <p>Voice-note a task ("remind me to call Jan Friday about the proposal"), MailMate extracts title / due / notes and saves it to Apple Reminders.</p>
+    </div>
+    <div class="card">
+      <div class="tag">Per-sender rules</div>
+      <h3>Different clients, different tone</h3>
+      <p>Rule overrides by domain or address. Horticulture clients get industry-specific wording, education clients get warm and patient, default clients get your base rules.</p>
+    </div>
+    <div class="card">
+      <div class="tag">Calendar-aware</div>
+      <h3>Real scheduling proposals</h3>
+      <p>Optionally include your next 7 days of busy windows in the prompt, so the model proposes specific free times instead of "[CONFIRM — check calendar]".</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="privacy">
+    <h2>Privacy: your emails never touch our servers</h2>
+    <p>
+      MailMate is a <b>bring-your-own-key</b> tool. You paste your Anthropic or OpenAI API key directly into the app, and every request goes from your Mac to the model provider you chose. There is no MailMate backend, no analytics, no telemetry, no accounts.
+    </p>
+    <ul>
+      <li>API keys are stored in the macOS Keychain, never on disk in plaintext.</li>
+      <li>Rules, overrides, and the diagnostic log live under <code>~/Library/Application Support/MailMate/</code> and <code>~/Library/Logs/MailMate.log</code> on your machine only.</li>
+      <li>Source is open: <a href="https://github.com/HRToyness/MailMate">github.com/HRToyness/MailMate</a>. Read the code before you install.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Install in under a minute</h2>
+  <ol class="steps">
+    <li>
+      <a href="https://github.com/HRToyness/MailMate/releases/latest/download/MailMate-Installer.dmg">Download the DMG</a> and double-click it.
+    </li>
+    <li>
+      Drag <b>MailMate.app</b> into the <b>Applications</b> shortcut.
+    </li>
+    <li>
+      Double-click <b>Setup.command</b>. Right-click → Open if macOS asks — one-time Gatekeeper confirmation.
+    </li>
+    <li>
+      Click the envelope icon in your menu bar → <b>Settings…</b> → paste your <b>Anthropic</b> or <b>OpenAI</b> API key.
+    </li>
+    <li>
+      Grant <b>Automation</b> (Mail), <b>Accessibility</b> (paste) and <b>Microphone</b> (dictation) when prompted. Each is a one-time switch.
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>Keyboard shortcuts</h2>
+  <div class="shortcuts">
+    <div class="shortcut"><span class="kbd">⌘⇧R</span> <span>Draft 3 reply options</span></div>
+    <div class="shortcut"><span class="kbd">⌘⇧D</span> <span>Dictate a reply</span></div>
+    <div class="shortcut"><span class="kbd">⌘⇧S</span> <span>Summarize thread</span></div>
+    <div class="shortcut"><span class="kbd">⌘⇧T</span> <span>Dictate a task</span></div>
+    <div class="shortcut"><span class="kbd">1 / 2 / 3</span> <span>Pick a variant</span></div>
+    <div class="shortcut"><span class="kbd">⌘↩</span> <span>Paste edited reply</span></div>
+  </div>
+  <p class="small">Tip: System Settings → Keyboard → Keyboard Shortcuts → Services — bind system-wide shortcuts for the four main actions so they work from anywhere in macOS.</p>
+</section>
+
+<footer>
+  <div>
+    <a href="https://github.com/HRToyness/MailMate">Source</a> ·
+    <a href="https://github.com/HRToyness/MailMate/issues">Issues</a> ·
+    Built by <a href="https://github.com/HRToyness">Toyness IT</a>
+  </div>
+  <div style="margin-top:8px">
+    Not affiliated with Apple, Anthropic, or OpenAI.
+  </div>
+</footer>
+
+</div>
+
+</body>
+</html>
