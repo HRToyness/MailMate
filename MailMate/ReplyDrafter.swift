@@ -455,14 +455,21 @@ final class ReplyDrafter {
                     "### Message \(m.index)\nFrom: \(m.sender)\nSubject: \(m.subject)\nDate: \(m.dateReceived)\n\n\(m.snippet)"
                 }.joined(separator: "\n\n")
 
+                let rules = RulesLoader.load()
                 let system = """
-                Triage the following unread emails for a busy user. Return ONE valid JSON array, no code fences, no preamble, no commentary. Each element:
+                You are triaging the unread inbox of a specific user. Their rules file tells you who they are, what they work on, and which senders matter. Use that context when assigning priority — e.g. a request from a sector the user works in is likely more important than a generic one.
+
+                ## User's rules (for context about who they are)
+                \(rules)
+
+                ## Output
+                Return ONE valid JSON array, no code fences, no preamble, no commentary. Each element:
                 - "index": integer (message number as given)
                 - "priority": "urgent" | "normal" | "low" | "spam"
                 - "summary": one sentence, under 20 words, in the SAME LANGUAGE as the message
                 - "action": short phrase like "reply", "read", "archive", "schedule meeting", "delegate", "none"
 
-                Sort the array most-important first. Skip obvious newsletters/promotions unless they're genuinely urgent.
+                Sort the array most-important first. Skip obvious newsletters/promotions unless they're genuinely urgent. Do not invent messages.
                 """
 
                 let raw = try await client.oneShot(system: system, user: userPrompt)
