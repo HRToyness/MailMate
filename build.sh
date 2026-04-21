@@ -72,6 +72,13 @@ sed \
 
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
+# Copy app icon into the bundle's Resources.
+if [ -f MailMate/AppIcon.icns ]; then
+  cp MailMate/AppIcon.icns "$RES_DIR/AppIcon.icns"
+else
+  echo "Warning: MailMate/AppIcon.icns not found; build without icon. Run ./tools/build-icon.sh to generate it."
+fi
+
 codesign --force --sign - \
   --entitlements MailMate/MailMate.entitlements \
   --identifier com.toynessit.MailMate \
