@@ -45,7 +45,7 @@ final class WelcomeController: NSObject, NSWindowDelegate {
         )
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Welcome to MailMate"
+        window.title = NSLocalizedString("Welcome to MailMate", comment: "")
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.setContentSize(NSSize(width: 560, height: 520))

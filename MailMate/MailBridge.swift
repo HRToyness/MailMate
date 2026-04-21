@@ -15,6 +15,15 @@ struct MailMessage {
     }
 }
 
+struct TriageMessage {
+    let index: Int
+    let sender: String
+    let subject: String
+    let dateReceived: String
+    let snippet: String
+    let messageID: String
+}
+
 enum MailBridgeError: Error, LocalizedError {
     case noSelection
     case scriptError(String)
@@ -146,6 +155,78 @@ enum MailBridge {
         Thread.sleep(forTimeInterval: 0.6)
         restorePasteboard(pb, items: saved)
         Log.write("Clipboard restored")
+    }
+
+    /// Reads up to `maxCount` most-recent unread messages from Mail's unified
+    /// inbox. Each message includes a short body snippet for triage context.
+    static func fetchRecentUnread(maxCount: Int) throws -> [TriageMessage] {
+        let script = """
+        tell application "Mail"
+            set collected to ""
+            try
+                set allUnread to (messages of inbox whose read status is false)
+                set total to count of allUnread
+                set limit to \(maxCount)
+                if total < limit then set limit to total
+                repeat with i from 1 to limit
+                    set m to item i of allUnread
+                    set theBody to content of m
+                    set snippetLen to 500
+                    if (length of theBody) < snippetLen then set snippetLen to length of theBody
+                    set snippet to text 1 thru snippetLen of theBody
+                    if collected is not "" then
+                        set collected to collected & "\(messageSep)"
+                    end if
+                    set collected to collected & (sender of m) & "\(separator)" & (subject of m) & "\(separator)" & ((date received of m) as string) & "\(separator)" & snippet & "\(separator)" & ((id of m) as string)
+                end repeat
+            end try
+            return collected
+        end tell
+        """
+
+        let result = try runAppleScript(script)
+        if result.isEmpty { return [] }
+        let parts = result.components(separatedBy: messageSep)
+        var out: [TriageMessage] = []
+        for (i, block) in parts.enumerated() {
+            let fields = block.components(separatedBy: separator)
+            guard fields.count >= 5 else { continue }
+            let snippet = fields[3..<(fields.count - 1)].joined(separator: separator)
+            out.append(TriageMessage(
+                index: i + 1,
+                sender: fields[0],
+                subject: fields[1],
+                dateReceived: fields[2],
+                snippet: snippet,
+                messageID: fields[fields.count - 1]
+            ))
+        }
+        return out
+    }
+
+    /// Activates Mail and selects the message with the given id. Ids are
+    /// integers per Mail's scripting dictionary; reject non-numeric input to
+    /// avoid script injection.
+    static func selectMessage(id: String) throws {
+        guard let numericId = Int(id.trimmingCharacters(in: .whitespaces)) else {
+            throw MailBridgeError.scriptError("Invalid message id")
+        }
+        let script = """
+        tell application "Mail"
+            activate
+            try
+                set targetMsg to first message of inbox whose id is \(numericId)
+                set selected messages of (first message viewer) to {targetMsg}
+                return "OK"
+            on error errMsg
+                return "NOT_FOUND:" & errMsg
+            end try
+        end tell
+        """
+        let result = try runAppleScript(script)
+        if result.hasPrefix("NOT_FOUND") {
+            throw MailBridgeError.scriptError("Message no longer visible in inbox")
+        }
     }
 
     static func openReplyWindow() throws {

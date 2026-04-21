@@ -1,0 +1,129 @@
+/* Menu items */
+"Draft 3 reply options…" = "Schrijf 3 antwoordopties…";
+"Dictate a reply…" = "Spreek een antwoord in…";
+"Summarize thread…" = "Vat gesprek samen…";
+"Dictate a task…" = "Spreek een taak in…";
+"Triage inbox…" = "Inbox triage…";
+"Edit rules…" = "Regels bewerken…";
+"Edit per-client overrides…" = "Klantspecifieke regels bewerken…";
+"Settings…" = "Instellingen…";
+"Quit MailMate" = "MailMate afsluiten";
+
+/* Window titles */
+"MailMate Settings" = "MailMate — Instellingen";
+"MailMate — pick a reply" = "MailMate — kies een antwoord";
+"MailMate — Dictate a reply" = "MailMate — Antwoord inspreken";
+"MailMate — thread summary" = "MailMate — samenvatting";
+"MailMate — Dictate a task" = "MailMate — Taak inspreken";
+"MailMate — Inbox triage" = "MailMate — Inbox triage";
+"MailMate — Rules" = "MailMate — Regels";
+"MailMate — Per-client overrides" = "MailMate — Klantspecifieke regels";
+"Welcome to MailMate" = "Welkom bij MailMate";
+
+/* Common buttons */
+"Save" = "Opslaan";
+"Saved" = "Opgeslagen";
+"Cancel" = "Annuleer";
+"Close" = "Sluit";
+"Copy" = "Kopieer";
+"Use this" = "Gebruik deze";
+"Record" = "Opnemen";
+"Stop" = "Stop";
+"Re-record" = "Opnieuw opnemen";
+"Later" = "Later";
+"Open Settings" = "Open instellingen";
+"Open System Settings" = "Open systeeminstellingen";
+"OK" = "OK";
+"Refresh" = "Ververs";
+"Paste into Mail" = "Plak in Mail";
+"Back" = "Terug";
+"Test connection" = "Test verbinding";
+"Reveal in Finder" = "Toon in Finder";
+"Reset to defaults…" = "Standaard herstellen…";
+"Edit rules file" = "Bewerk regels";
+
+/* Status / errors */
+"Generating…" = "Bezig met genereren…";
+"Transcribing…" = "Bezig met transcriberen…";
+"Writing reply…" = "Bezig met schrijven…";
+"Summarizing…" = "Bezig met samenvatten…";
+"Extracting task…" = "Taak uitlezen…";
+"Saving…" = "Bezig met opslaan…";
+"Reading inbox…" = "Bezig met lezen…";
+"Testing…" = "Bezig met testen…";
+
+/* Notifications */
+"Select a message in Mail first." = "Selecteer eerst een bericht in Mail.";
+"Set your %@ API key in Settings." = "Stel je %@ API-sleutel in via Instellingen.";
+"Set your OpenAI API key in Settings (required for voice dictation)." = "Stel je OpenAI API-sleutel in via Instellingen (vereist voor dicteren).";
+"Model returned empty reply." = "Model gaf een leeg antwoord.";
+"Task saved to Reminders." = "Taak opgeslagen in Herinneringen.";
+"The selected message is no longer available." = "Het geselecteerde bericht is niet meer beschikbaar.";
+"Nothing to triage." = "Niets om te beoordelen.";
+
+/* Triage */
+"TRIAGE" = "TRIAGE";
+"Urgent" = "Urgent";
+"Normal" = "Normaal";
+"Low" = "Laag";
+"Spam" = "Spam";
+"Suggested:" = "Voorstel:";
+
+/* Settings */
+"Active provider" = "Actieve aanbieder";
+"Anthropic (Claude)" = "Anthropic (Claude)";
+"OpenAI (ChatGPT)" = "OpenAI (ChatGPT)";
+"API key" = "API-sleutel";
+"Model" = "Model";
+"Voice dictation" = "Inspreken";
+"Dictation language" = "Taal bij inspreken";
+"Auto-detect" = "Automatisch";
+"English (en)" = "Engels (en)";
+"Dutch (nl)" = "Nederlands (nl)";
+"Context" = "Context";
+"Include prior thread messages (experimental)" = "Eerdere berichten meesturen (experimenteel)";
+"Include my calendar when drafting replies" = "Agenda meesturen bij antwoorden";
+"System" = "Systeem";
+"Launch MailMate at login" = "Start MailMate bij aanmelden";
+
+/* Rules editor */
+"Markdown. These rules are sent to the model as part of every request." = "Markdown. Deze regels worden bij elk verzoek naar het model gestuurd.";
+"Per-sender rule overrides. Each \"## <pattern>\" section replaces the base rules when the sender matches. First match wins." = "Per-afzender regels. Elke \"## <patroon>\"-sectie vervangt de basisregels als de afzender overeenkomt. Eerste match telt.";
+"Reset to the built-in defaults?" = "Standaard tekst herstellen?";
+"This replaces the current content. Your current text will be lost." = "Dit overschrijft de huidige tekst. De huidige inhoud gaat verloren.";
+"Reset" = "Herstel";
+
+/* Permissions */
+"Accessibility permission needed" = "Toegangstoestemming nodig";
+"Microphone access needed" = "Microfoontoestemming nodig";
+"Reminders access needed" = "Herinneringen-toestemming nodig";
+"MailMate needs Accessibility permission to paste the reply into Mail.\n\nThe reply is already on your clipboard — you can paste it manually with ⌘V.\n\nTo fix this for future replies: open System Settings → Privacy & Security → Accessibility, then enable MailMate." = "MailMate heeft toegankelijkheidstoestemming nodig om het antwoord in Mail te plakken.\n\nHet antwoord staat al op je klembord — je kunt handmatig plakken met ⌘V.\n\nVoor volgende antwoorden: open Systeeminstellingen → Privacy & beveiliging → Toegankelijkheid en zet MailMate aan.";
+"MailMate needs microphone access to dictate replies.\n\nOpen System Settings → Privacy & Security → Microphone and enable MailMate." = "MailMate heeft toegang tot de microfoon nodig om antwoorden in te spreken.\n\nOpen Systeeminstellingen → Privacy & beveiliging → Microfoon en zet MailMate aan.";
+"MailMate saves dictated tasks to Apple Reminders.\n\nOpen System Settings → Privacy & Security → Reminders and enable MailMate." = "MailMate bewaart ingesproken taken in Apple Herinneringen.\n\nOpen Systeeminstellingen → Privacy & beveiliging → Herinneringen en zet MailMate aan.";
+
+/* Dictation helper text */
+"Dictate your reply in Dutch or English." = "Spreek je antwoord in het Nederlands of Engels in.";
+"Reply ready — review and use, or re-record." = "Antwoord klaar — controleer en gebruik, of neem opnieuw op.";
+"Press record and dictate your reply in Dutch or English." = "Druk op opnemen en spreek je antwoord in.";
+"Press record and say what you want to do." = "Druk op opnemen en zeg wat je wilt doen.";
+"Review the task, then Save." = "Controleer de taak en klik Opslaan.";
+"Save to Reminders" = "Opslaan in Herinneringen";
+
+/* Variant picker */
+"Generating… (press 1/2/3 to pick)" = "Bezig… (druk 1/2/3 om te kiezen)";
+"Press 1/2/3 to pick, edit if needed, then ⌘↩ to paste." = "Druk 1/2/3 om te kiezen, bewerk indien nodig, dan ⌘↩ om te plakken.";
+"⌘↩ to paste · esc to go back" = "⌘↩ om te plakken · esc om terug te gaan";
+
+/* Task capture */
+"Title" = "Titel";
+"Notes (optional)" = "Notities (optioneel)";
+"Has due date" = "Heeft einddatum";
+"Due" = "Deadline";
+"List" = "Lijst";
+
+/* Welcome */
+"AI replies for Mail.app, with voice dictation." = "AI-antwoorden voor Mail.app, met inspreken.";
+"Two ways to use it" = "Twee manieren om te gebruiken";
+"Draft 3 reply options" = "Schrijf 3 antwoordopties";
+"Dictate a reply" = "Antwoord inspreken";
+"Before your first reply" = "Vóór je eerste antwoord";

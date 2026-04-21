@@ -48,7 +48,7 @@ final class TaskCapturePanel: NSObject, NSWindowDelegate {
         let view = TaskCapturePanelView(state: state)
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "MailMate — Dictate a task"
+        window.title = NSLocalizedString("MailMate — Dictate a task", comment: "")
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.level = .floating

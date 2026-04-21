@@ -18,17 +18,17 @@ final class RulesEditor: NSObject, NSWindowDelegate {
 
         var windowTitle: String {
             switch self {
-            case .base: return "MailMate — Rules"
-            case .overrides: return "MailMate — Per-client overrides"
+            case .base: return NSLocalizedString("MailMate — Rules", comment: "")
+            case .overrides: return NSLocalizedString("MailMate — Per-client overrides", comment: "")
             }
         }
 
         var headerText: String {
             switch self {
             case .base:
-                return "Markdown. These rules are sent to the model as part of every request."
+                return NSLocalizedString("Markdown. These rules are sent to the model as part of every request.", comment: "")
             case .overrides:
-                return "Per-sender rule overrides. Each \"## <pattern>\" section replaces the base rules when the sender matches. First match wins."
+                return NSLocalizedString("Per-sender rule overrides. Each \"## <pattern>\" section replaces the base rules when the sender matches. First match wins.", comment: "")
             }
         }
 

@@ -16,7 +16,7 @@ class StatusController: NSObject {
         let menu = NSMenu()
 
         let draftItem = NSMenuItem(
-            title: "Draft 3 reply options…",
+            title: NSLocalizedString("Draft 3 reply options…", comment: ""),
             action: #selector(draft),
             keyEquivalent: "r"
         )
@@ -25,7 +25,7 @@ class StatusController: NSObject {
         menu.addItem(draftItem)
 
         let dictateItem = NSMenuItem(
-            title: "Dictate a reply…",
+            title: NSLocalizedString("Dictate a reply…", comment: ""),
             action: #selector(dictate),
             keyEquivalent: "d"
         )
@@ -34,7 +34,7 @@ class StatusController: NSObject {
         menu.addItem(dictateItem)
 
         let summaryItem = NSMenuItem(
-            title: "Summarize thread…",
+            title: NSLocalizedString("Summarize thread…", comment: ""),
             action: #selector(summarize),
             keyEquivalent: "s"
         )
@@ -43,7 +43,7 @@ class StatusController: NSObject {
         menu.addItem(summaryItem)
 
         let taskItem = NSMenuItem(
-            title: "Dictate a task…",
+            title: NSLocalizedString("Dictate a task…", comment: ""),
             action: #selector(voiceTask),
             keyEquivalent: "t"
         )
@@ -51,28 +51,37 @@ class StatusController: NSObject {
         taskItem.target = self
         menu.addItem(taskItem)
 
+        let triageItem = NSMenuItem(
+            title: NSLocalizedString("Triage inbox…", comment: ""),
+            action: #selector(triage),
+            keyEquivalent: "i"
+        )
+        triageItem.keyEquivalentModifierMask = [.command, .shift]
+        triageItem.target = self
+        menu.addItem(triageItem)
+
         menu.addItem(.separator())
 
-        let rulesItem = NSMenuItem(title: "Edit rules…",
+        let rulesItem = NSMenuItem(title: NSLocalizedString("Edit rules…", comment: ""),
                                    action: #selector(editRules),
                                    keyEquivalent: "")
         rulesItem.target = self
         menu.addItem(rulesItem)
 
-        let overridesItem = NSMenuItem(title: "Edit per-client overrides…",
+        let overridesItem = NSMenuItem(title: NSLocalizedString("Edit per-client overrides…", comment: ""),
                                        action: #selector(editOverrides),
                                        keyEquivalent: "")
         overridesItem.target = self
         menu.addItem(overridesItem)
 
-        let settingsItem = NSMenuItem(title: "Settings…",
+        let settingsItem = NSMenuItem(title: NSLocalizedString("Settings…", comment: ""),
                                       action: #selector(openSettings),
                                       keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
 
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit MailMate",
+        menu.addItem(NSMenuItem(title: NSLocalizedString("Quit MailMate", comment: ""),
                                 action: #selector(NSApplication.terminate(_:)),
                                 keyEquivalent: "q"))
 
@@ -140,6 +149,12 @@ class StatusController: NSObject {
         }
     }
 
+    @objc private func triage() {
+        Task { @MainActor in
+            await ReplyDrafter.shared.runTriage()
+        }
+    }
+
     @objc private func editRules() {
         RulesLoader.openInEditor()
     }
@@ -152,7 +167,7 @@ class StatusController: NSObject {
         if settingsWindow == nil {
             let hosting = NSHostingController(rootView: SettingsView())
             let window = NSWindow(contentViewController: hosting)
-            window.title = "MailMate Settings"
+            window.title = NSLocalizedString("MailMate Settings", comment: "")
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false
             window.center()

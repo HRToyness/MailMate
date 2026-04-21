@@ -51,7 +51,7 @@ final class VariantPanel: NSObject, NSWindowDelegate {
 
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "MailMate — pick a reply"
+        window.title = NSLocalizedString("MailMate — pick a reply", comment: "")
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.level = .floating

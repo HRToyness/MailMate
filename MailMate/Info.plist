@@ -4,6 +4,11 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>nl</string>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -79,6 +84,17 @@
 			</dict>
 			<key>NSMessage</key>
 			<string>voiceTask</string>
+			<key>NSPortName</key>
+			<string>MailMate</string>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>MailMate/Triage inbox</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>triageInbox</string>
 			<key>NSPortName</key>
 			<string>MailMate</string>
 		</dict>

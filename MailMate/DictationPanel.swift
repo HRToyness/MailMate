@@ -42,7 +42,7 @@ final class DictationPanel: NSObject, NSWindowDelegate {
         let view = DictationPanelView(state: state)
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "MailMate — Dictate a reply"
+        window.title = NSLocalizedString("MailMate — Dictate a reply", comment: "")
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.level = .floating

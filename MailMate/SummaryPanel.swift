@@ -26,7 +26,7 @@ final class SummaryPanel: NSObject, NSWindowDelegate {
         let view = SummaryView(state: state)
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
-        window.title = "MailMate — thread summary"
+        window.title = NSLocalizedString("MailMate — thread summary", comment: "")
         window.styleMask = [.titled, .closable, .resizable]
         window.isReleasedWhenClosed = false
         window.level = .floating

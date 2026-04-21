@@ -50,4 +50,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             await ReplyDrafter.shared.runVoiceTask()
         }
     }
+
+    @objc func triageInbox(_ pboard: NSPasteboard,
+                           userData: String,
+                           error: NSErrorPointer) {
+        Task { @MainActor in
+            await ReplyDrafter.shared.runTriage()
+        }
+    }
 }

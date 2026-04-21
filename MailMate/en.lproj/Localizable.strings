@@ -1,0 +1,129 @@
+/* Menu items */
+"Draft 3 reply options…" = "Draft 3 reply options…";
+"Dictate a reply…" = "Dictate a reply…";
+"Summarize thread…" = "Summarize thread…";
+"Dictate a task…" = "Dictate a task…";
+"Triage inbox…" = "Triage inbox…";
+"Edit rules…" = "Edit rules…";
+"Edit per-client overrides…" = "Edit per-client overrides…";
+"Settings…" = "Settings…";
+"Quit MailMate" = "Quit MailMate";
+
+/* Window titles */
+"MailMate Settings" = "MailMate Settings";
+"MailMate — pick a reply" = "MailMate — pick a reply";
+"MailMate — Dictate a reply" = "MailMate — Dictate a reply";
+"MailMate — thread summary" = "MailMate — thread summary";
+"MailMate — Dictate a task" = "MailMate — Dictate a task";
+"MailMate — Inbox triage" = "MailMate — Inbox triage";
+"MailMate — Rules" = "MailMate — Rules";
+"MailMate — Per-client overrides" = "MailMate — Per-client overrides";
+"Welcome to MailMate" = "Welcome to MailMate";
+
+/* Common buttons */
+"Save" = "Save";
+"Saved" = "Saved";
+"Cancel" = "Cancel";
+"Close" = "Close";
+"Copy" = "Copy";
+"Use this" = "Use this";
+"Record" = "Record";
+"Stop" = "Stop";
+"Re-record" = "Re-record";
+"Later" = "Later";
+"Open Settings" = "Open Settings";
+"Open System Settings" = "Open System Settings";
+"OK" = "OK";
+"Refresh" = "Refresh";
+"Paste into Mail" = "Paste into Mail";
+"Back" = "Back";
+"Test connection" = "Test connection";
+"Reveal in Finder" = "Reveal in Finder";
+"Reset to defaults…" = "Reset to defaults…";
+"Edit rules file" = "Edit rules file";
+
+/* Status / errors */
+"Generating…" = "Generating…";
+"Transcribing…" = "Transcribing…";
+"Writing reply…" = "Writing reply…";
+"Summarizing…" = "Summarizing…";
+"Extracting task…" = "Extracting task…";
+"Saving…" = "Saving…";
+"Reading inbox…" = "Reading inbox…";
+"Testing…" = "Testing…";
+
+/* Notifications */
+"Select a message in Mail first." = "Select a message in Mail first.";
+"Set your %@ API key in Settings." = "Set your %@ API key in Settings.";
+"Set your OpenAI API key in Settings (required for voice dictation)." = "Set your OpenAI API key in Settings (required for voice dictation).";
+"Model returned empty reply." = "Model returned empty reply.";
+"Task saved to Reminders." = "Task saved to Reminders.";
+"The selected message is no longer available." = "The selected message is no longer available.";
+"Nothing to triage." = "Nothing to triage.";
+
+/* Triage */
+"TRIAGE" = "TRIAGE";
+"Urgent" = "Urgent";
+"Normal" = "Normal";
+"Low" = "Low";
+"Spam" = "Spam";
+"Suggested:" = "Suggested:";
+
+/* Settings */
+"Active provider" = "Active provider";
+"Anthropic (Claude)" = "Anthropic (Claude)";
+"OpenAI (ChatGPT)" = "OpenAI (ChatGPT)";
+"API key" = "API key";
+"Model" = "Model";
+"Voice dictation" = "Voice dictation";
+"Dictation language" = "Dictation language";
+"Auto-detect" = "Auto-detect";
+"English (en)" = "English (en)";
+"Dutch (nl)" = "Dutch (nl)";
+"Context" = "Context";
+"Include prior thread messages (experimental)" = "Include prior thread messages (experimental)";
+"Include my calendar when drafting replies" = "Include my calendar when drafting replies";
+"System" = "System";
+"Launch MailMate at login" = "Launch MailMate at login";
+
+/* Rules editor */
+"Markdown. These rules are sent to the model as part of every request." = "Markdown. These rules are sent to the model as part of every request.";
+"Per-sender rule overrides. Each \"## <pattern>\" section replaces the base rules when the sender matches. First match wins." = "Per-sender rule overrides. Each \"## <pattern>\" section replaces the base rules when the sender matches. First match wins.";
+"Reset to the built-in defaults?" = "Reset to the built-in defaults?";
+"This replaces the current content. Your current text will be lost." = "This replaces the current content. Your current text will be lost.";
+"Reset" = "Reset";
+
+/* Permissions */
+"Accessibility permission needed" = "Accessibility permission needed";
+"Microphone access needed" = "Microphone access needed";
+"Reminders access needed" = "Reminders access needed";
+"MailMate needs Accessibility permission to paste the reply into Mail.\n\nThe reply is already on your clipboard — you can paste it manually with ⌘V.\n\nTo fix this for future replies: open System Settings → Privacy & Security → Accessibility, then enable MailMate." = "MailMate needs Accessibility permission to paste the reply into Mail.\n\nThe reply is already on your clipboard — you can paste it manually with ⌘V.\n\nTo fix this for future replies: open System Settings → Privacy & Security → Accessibility, then enable MailMate.";
+"MailMate needs microphone access to dictate replies.\n\nOpen System Settings → Privacy & Security → Microphone and enable MailMate." = "MailMate needs microphone access to dictate replies.\n\nOpen System Settings → Privacy & Security → Microphone and enable MailMate.";
+"MailMate saves dictated tasks to Apple Reminders.\n\nOpen System Settings → Privacy & Security → Reminders and enable MailMate." = "MailMate saves dictated tasks to Apple Reminders.\n\nOpen System Settings → Privacy & Security → Reminders and enable MailMate.";
+
+/* Dictation helper text */
+"Dictate your reply in Dutch or English." = "Dictate your reply in Dutch or English.";
+"Reply ready — review and use, or re-record." = "Reply ready — review and use, or re-record.";
+"Press record and dictate your reply in Dutch or English." = "Press record and dictate your reply in Dutch or English.";
+"Press record and say what you want to do." = "Press record and say what you want to do.";
+"Review the task, then Save." = "Review the task, then Save.";
+"Save to Reminders" = "Save to Reminders";
+
+/* Variant picker */
+"Generating… (press 1/2/3 to pick)" = "Generating… (press 1/2/3 to pick)";
+"Press 1/2/3 to pick, edit if needed, then ⌘↩ to paste." = "Press 1/2/3 to pick, edit if needed, then ⌘↩ to paste.";
+"⌘↩ to paste · esc to go back" = "⌘↩ to paste · esc to go back";
+
+/* Task capture */
+"Title" = "Title";
+"Notes (optional)" = "Notes (optional)";
+"Has due date" = "Has due date";
+"Due" = "Due";
+"List" = "List";
+
+/* Welcome */
+"AI replies for Mail.app, with voice dictation." = "AI replies for Mail.app, with voice dictation.";
+"Two ways to use it" = "Two ways to use it";
+"Draft 3 reply options" = "Draft 3 reply options";
+"Dictate a reply" = "Dictate a reply";
+"Before your first reply" = "Before your first reply";

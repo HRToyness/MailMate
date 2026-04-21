@@ -405,6 +405,111 @@ final class ReplyDrafter {
         }
     }
 
+    // MARK: - Inbox triage flow
+
+    private let triagePanel = TriagePanel()
+    private var triageTask: Task<Void, Never>?
+
+    func runTriage() async {
+        Log.write("=== runTriage() start ===")
+        let kind = ProviderFactory.current
+        let client: ReplyProvider
+        do {
+            client = try ProviderFactory.make(kind)
+        } catch let ProviderError.missingAPIKey(k) {
+            notify("Set your \(k.displayName) API key in Settings.")
+            return
+        } catch {
+            notify("Error: \(error.localizedDescription)")
+            return
+        }
+
+        // Show panel immediately in loading state.
+        triagePanel.state.phase = .loading
+        triagePanel.state.entries = []
+        triagePanel.state.sourceCount = 0
+        triagePanel.state.onRefresh = { [weak self] in
+            Task { @MainActor in await self?.runTriage() }
+        }
+        triagePanel.state.onSelect = { [weak self] entry in
+            self?.triageSelect(entry)
+        }
+        triagePanel.state.onClose = { [weak self] in
+            self?.triageTask?.cancel()
+            self?.triagePanel.close()
+        }
+        triagePanel.show()
+
+        triageTask?.cancel()
+        triageTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let messages = try MailBridge.fetchRecentUnread(maxCount: 20)
+                self.triagePanel.state.sourceCount = messages.count
+                if messages.isEmpty {
+                    self.triagePanel.state.phase = .ready
+                    return
+                }
+
+                let userPrompt = messages.map { m in
+                    "### Message \(m.index)\nFrom: \(m.sender)\nSubject: \(m.subject)\nDate: \(m.dateReceived)\n\n\(m.snippet)"
+                }.joined(separator: "\n\n")
+
+                let system = """
+                Triage the following unread emails for a busy user. Return ONE valid JSON array, no code fences, no preamble, no commentary. Each element:
+                - "index": integer (message number as given)
+                - "priority": "urgent" | "normal" | "low" | "spam"
+                - "summary": one sentence, under 20 words, in the SAME LANGUAGE as the message
+                - "action": short phrase like "reply", "read", "archive", "schedule meeting", "delegate", "none"
+
+                Sort the array most-important first. Skip obvious newsletters/promotions unless they're genuinely urgent.
+                """
+
+                let raw = try await client.oneShot(system: system, user: userPrompt)
+                if Task.isCancelled { return }
+                let parsed = Self.parseTriageJSON(raw, originals: messages)
+                self.triagePanel.state.entries = parsed
+                self.triagePanel.state.phase = .ready
+                Log.write("Triage done: \(parsed.count) entries from \(messages.count) messages")
+            } catch is CancellationError {
+                Log.write("Triage cancelled")
+            } catch {
+                Log.write("Triage error: \(error.localizedDescription)")
+                self.triagePanel.state.phase = .error(error.localizedDescription)
+            }
+            self.triageTask = nil
+        }
+    }
+
+    private func triageSelect(_ entry: TriageEntry) {
+        Log.write("Triage select id=\(entry.messageID)")
+        do {
+            try MailBridge.selectMessage(id: entry.messageID)
+        } catch {
+            notify("Could not select that message: \(error.localizedDescription)")
+        }
+    }
+
+    private static func parseTriageJSON(_ raw: String, originals: [TriageMessage]) -> [TriageEntry] {
+        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.hasPrefix("```") {
+            if let nl = s.firstIndex(of: "\n") { s = String(s[s.index(after: nl)...]) }
+            if s.hasSuffix("```") { s = String(s.dropLast(3)) }
+            s = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        guard let data = s.data(using: .utf8) else { return [] }
+        let decoded = (try? JSONDecoder().decode([TriageEntry].self, from: data)) ?? []
+        let byIndex = Dictionary(uniqueKeysWithValues: originals.map { ($0.index, $0) })
+        return decoded.compactMap { entry in
+            guard let orig = byIndex[entry.index] else { return nil }
+            var e = entry
+            e.sender = orig.sender
+            e.subject = orig.subject
+            e.messageID = orig.messageID
+            return e
+        }
+    }
+
     // MARK: - Voice-to-task flow
 
     private let taskCapture = TaskCapture()
@@ -466,16 +571,10 @@ final class ReplyDrafter {
 
     private func promptForAccessibility() {
         let alert = NSAlert()
-        alert.messageText = "Accessibility permission needed"
-        alert.informativeText = """
-        MailMate needs Accessibility permission to paste the reply into Mail.
-
-        The reply is already on your clipboard — you can paste it manually with ⌘V.
-
-        To fix this for future replies: open System Settings → Privacy & Security → Accessibility, then enable MailMate.
-        """
-        alert.addButton(withTitle: "Open System Settings")
-        alert.addButton(withTitle: "OK")
+        alert.messageText = NSLocalizedString("Accessibility permission needed", comment: "")
+        alert.informativeText = NSLocalizedString("MailMate needs Accessibility permission to paste the reply into Mail.\n\nThe reply is already on your clipboard — you can paste it manually with ⌘V.\n\nTo fix this for future replies: open System Settings → Privacy & Security → Accessibility, then enable MailMate.", comment: "")
+        alert.addButton(withTitle: NSLocalizedString("Open System Settings", comment: ""))
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
         NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
@@ -487,14 +586,10 @@ final class ReplyDrafter {
 
     private func promptForMicrophone() {
         let alert = NSAlert()
-        alert.messageText = "Microphone access needed"
-        alert.informativeText = """
-        MailMate needs microphone access to dictate replies.
-
-        Open System Settings → Privacy & Security → Microphone and enable MailMate.
-        """
-        alert.addButton(withTitle: "Open System Settings")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = NSLocalizedString("Microphone access needed", comment: "")
+        alert.informativeText = NSLocalizedString("MailMate needs microphone access to dictate replies.\n\nOpen System Settings → Privacy & Security → Microphone and enable MailMate.", comment: "")
+        alert.addButton(withTitle: NSLocalizedString("Open System Settings", comment: ""))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
         NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
@@ -506,14 +601,10 @@ final class ReplyDrafter {
 
     private func promptForReminders() {
         let alert = NSAlert()
-        alert.messageText = "Reminders access needed"
-        alert.informativeText = """
-        MailMate saves dictated tasks to Apple Reminders.
-
-        Open System Settings → Privacy & Security → Reminders and enable MailMate.
-        """
-        alert.addButton(withTitle: "Open System Settings")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = NSLocalizedString("Reminders access needed", comment: "")
+        alert.informativeText = NSLocalizedString("MailMate saves dictated tasks to Apple Reminders.\n\nOpen System Settings → Privacy & Security → Reminders and enable MailMate.", comment: "")
+        alert.addButton(withTitle: NSLocalizedString("Open System Settings", comment: ""))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
         NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {

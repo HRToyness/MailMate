@@ -35,6 +35,7 @@ SOURCES=(
   MailMate/SummaryPanel.swift
   MailMate/TaskCapture.swift
   MailMate/CalendarContext.swift
+  MailMate/TriagePanel.swift
 )
 
 rm -rf "$APP" "$TMP"
@@ -84,6 +85,12 @@ if [ -f MailMate/AppIcon.icns ]; then
 else
   echo "Warning: MailMate/AppIcon.icns not found; build without icon. Run ./tools/build-icon.sh to generate it."
 fi
+
+# Copy localization bundles.
+for lproj in MailMate/*.lproj; do
+  [ -d "$lproj" ] || continue
+  cp -R "$lproj" "$RES_DIR/"
+done
 
 codesign --force --sign - \
   --entitlements MailMate/MailMate.entitlements \
