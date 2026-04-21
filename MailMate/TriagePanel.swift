@@ -17,7 +17,7 @@ enum TriagePriority: String, Decodable {
     var color: Color {
         switch self {
         case .urgent: return .red
-        case .normal: return .accentColor
+        case .normal: return MMColor.indigo
         case .low:    return .secondary
         case .spam:   return .secondary
         }
@@ -31,7 +31,6 @@ struct TriageEntry: Identifiable, Decodable {
     let summary: String
     let action: String
 
-    // Populated from the original TriageMessage after parsing the model output:
     var sender: String = ""
     var subject: String = ""
     var messageID: String = ""
@@ -70,7 +69,8 @@ final class TriagePanel: NSObject, NSWindowDelegate {
         window.styleMask = [.titled, .closable, .resizable]
         window.isReleasedWhenClosed = false
         window.level = .floating
-        window.setContentSize(NSSize(width: 700, height: 560))
+        window.titlebarAppearsTransparent = true
+        window.setContentSize(NSSize(width: 720, height: 600))
         window.center()
         window.delegate = self
         self.window = window
@@ -95,22 +95,26 @@ private struct TriagePanelView: View {
     @ObservedObject var state: TriageState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("TRIAGE").font(.caption).foregroundStyle(.secondary).tracking(1.5)
-                Spacer()
-                switch state.phase {
-                case .loading:
-                    HStack(spacing: 6) {
-                        ProgressView().controlSize(.small)
-                        Text("Reading inbox…").font(.caption).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: MMSpace.md) {
+            HStack(spacing: 12) {
+                MMBrandGlyph(size: 26)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Inbox triage").font(MMFont.title)
+                    switch state.phase {
+                    case .loading:
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.small)
+                            Text("Reading your inbox…")
+                                .font(MMFont.caption).foregroundStyle(.secondary)
+                        }
+                    case .ready:
+                        Text("\(state.entries.count) of \(state.sourceCount) unread messages")
+                            .font(MMFont.caption).foregroundStyle(.secondary)
+                    case .error(let msg):
+                        Text(msg).font(MMFont.caption).foregroundStyle(.red).lineLimit(1)
                     }
-                case .ready:
-                    Text("\(state.entries.count) of \(state.sourceCount) unread")
-                        .font(.caption).foregroundStyle(.secondary)
-                case .error(let msg):
-                    Text(msg).font(.caption).foregroundStyle(.red).lineLimit(1)
                 }
+                Spacer()
             }
 
             ScrollView {
@@ -119,28 +123,32 @@ private struct TriagePanelView: View {
                         EntryRow(entry: entry) { state.onSelect(entry) }
                     }
                     if case .ready = state.phase, state.entries.isEmpty {
-                        Text("Nothing to triage.").foregroundStyle(.secondary).padding(20)
+                        VStack(spacing: 10) {
+                            Image(systemName: "tray")
+                                .font(.system(size: 36))
+                                .foregroundStyle(.secondary)
+                            Text("Nothing to triage.").foregroundStyle(.secondary)
+                        }
+                        .padding(40)
+                        .frame(maxWidth: .infinity)
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(2)
             }
-            .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
-            )
-            .cornerRadius(6)
 
             HStack {
                 Button("Refresh") { state.onRefresh() }
+                    .buttonStyle(MMPrimaryButtonStyle(compact: true))
                     .keyboardShortcut("r", modifiers: .command)
                 Spacer()
                 Button("Close") { state.onClose() }
+                    .buttonStyle(MMGhostButtonStyle())
                     .keyboardShortcut(.cancelAction)
             }
         }
-        .padding(14)
-        .frame(minWidth: 560, minHeight: 420)
+        .padding(MMSpace.lg)
+        .frame(minWidth: 600, minHeight: 460)
+        .mmPanelBackground()
     }
 }
 
@@ -154,37 +162,40 @@ private struct EntryRow: View {
                 Circle()
                     .fill(entry.priority.color)
                     .frame(width: 10, height: 10)
-                    .padding(.top, 6)
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack {
-                        Text(entry.sender).font(.body).bold().lineLimit(1)
-                        Text("—").foregroundStyle(.tertiary)
-                        Text(entry.subject).font(.body).foregroundStyle(.secondary).lineLimit(1)
+                    .padding(.top, 7)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(entry.sender)
+                            .font(.system(size: 13, weight: .semibold))
+                            .lineLimit(1)
+                        Text("·").foregroundStyle(.tertiary)
+                        Text(entry.subject)
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                         Spacer()
-                        Text(entry.priority.label.uppercased())
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(entry.priority.color)
+                        MMPill(text: entry.priority.label, color: entry.priority.color)
                     }
                     Text(entry.summary)
-                        .font(.callout)
+                        .font(.system(size: 13))
                         .foregroundStyle(.primary)
                         .fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 4) {
-                        Text("Suggested:")
-                            .font(.caption).foregroundStyle(.secondary)
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.turn.down.right")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
                         Text(entry.action)
-                            .font(.caption.weight(.medium))
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
                 Image(systemName: "chevron.right")
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 6)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 7)
             }
-            .padding(10)
+            .mmCard(padding: 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(nsColor: .controlBackgroundColor))
-            .cornerRadius(6)
         }
         .buttonStyle(.plain)
     }

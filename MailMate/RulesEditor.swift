@@ -138,14 +138,23 @@ private struct RulesEditorView: View {
     @ObservedObject var state: RulesEditorState
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                MMBrandGlyph(size: 22)
+                Text(state.kind == .base ? "Rules" : "Per-client overrides")
+                    .font(MMFont.title)
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+
             Text(state.kind.headerText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
+                .padding(.top, 6)
+                .padding(.bottom, 10)
 
             TextEditor(text: $state.text)
                 .font(.system(.body, design: .monospaced))
@@ -156,7 +165,9 @@ private struct RulesEditorView: View {
 
             HStack(spacing: 8) {
                 Button("Reveal in Finder") { state.revealInFinder() }
+                    .buttonStyle(MMGhostButtonStyle())
                 Button("Reset to defaults…") { state.resetToDefaults() }
+                    .buttonStyle(MMGhostButtonStyle())
                 Spacer()
                 if !state.status.isEmpty {
                     Text(state.status)
@@ -165,11 +176,13 @@ private struct RulesEditorView: View {
                 }
                 Button("Save") { state.save() }
                     .keyboardShortcut("s", modifiers: .command)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(MMPrimaryButtonStyle())
                     .disabled(!state.dirty)
+                    .opacity(state.dirty ? 1.0 : 0.5)
             }
             .padding(16)
         }
-        .frame(minWidth: 520, minHeight: 380)
+        .frame(minWidth: 520, minHeight: 420)
+        .mmPanelBackground()
     }
 }

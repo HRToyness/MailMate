@@ -28,13 +28,21 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Picker("Active provider", selection: $provider) {
-                ForEach(ProviderKind.allCases) { kind in
-                    Text(kind.displayName).tag(kind)
+            Section {
+                Picker("Active provider", selection: $provider) {
+                    ForEach(ProviderKind.allCases) { kind in
+                        Text(kind.displayName).tag(kind)
+                    }
                 }
+                .pickerStyle(.segmented)
+            } header: {
+                HStack(spacing: 10) {
+                    MMBrandGlyph(size: 22)
+                    Text("MailMate").font(.system(size: 17, weight: .semibold))
+                    Spacer()
+                }
+                .padding(.bottom, 4)
             }
-            .pickerStyle(.segmented)
-            .padding(.bottom, 4)
 
             Section("Anthropic (Claude)") {
                 SecureField("API key", text: $anthropicKey)
@@ -88,6 +96,7 @@ struct SettingsView: View {
 
             HStack {
                 Button("Save") { save() }
+                    .buttonStyle(MMPrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
                 if savedFlash {
                     Text("Saved").foregroundColor(.green).font(.caption)
@@ -99,10 +108,12 @@ struct SettingsView: View {
                 Button("Edit rules file") {
                     RulesLoader.openInEditor()
                 }
+                .buttonStyle(MMGhostButtonStyle())
             }
         }
         .padding()
         .frame(width: 560, height: 560)
+        .mmPanelBackground()
     }
 
     @ViewBuilder

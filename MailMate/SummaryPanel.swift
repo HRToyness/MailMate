@@ -30,7 +30,8 @@ final class SummaryPanel: NSObject, NSWindowDelegate {
         window.styleMask = [.titled, .closable, .resizable]
         window.isReleasedWhenClosed = false
         window.level = .floating
-        window.setContentSize(NSSize(width: 640, height: 480))
+        window.titlebarAppearsTransparent = true
+        window.setContentSize(NSSize(width: 640, height: 500))
         window.center()
         window.delegate = self
         self.window = window
@@ -62,18 +63,26 @@ private struct SummaryView: View {
     @ObservedObject var state: SummaryState
 
     var body: some View {
-        VStack(spacing: 10) {
-            HStack {
-                Text("SUMMARY").font(.caption).foregroundStyle(.secondary).tracking(1.5)
+        VStack(alignment: .leading, spacing: MMSpace.md) {
+            HStack(spacing: 12) {
+                MMBrandGlyph(size: 26)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Thread summary").font(MMFont.title)
+                    HStack(spacing: 6) {
+                        if state.isStreaming {
+                            ProgressView().controlSize(.small)
+                            Text("Summarizing…").font(MMFont.caption).foregroundStyle(.secondary)
+                        } else if let err = state.errorMessage {
+                            Text(err).font(MMFont.caption).foregroundStyle(.red).lineLimit(1)
+                        } else {
+                            Text("Ready.").font(MMFont.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
                 Spacer()
-                if state.isStreaming {
-                    ProgressView().controlSize(.small)
-                    Text("Summarizing…").font(.caption).foregroundStyle(.secondary)
-                }
-                if let err = state.errorMessage {
-                    Text(err).font(.caption).foregroundStyle(.red)
-                }
             }
+
+            MMSectionLabel(text: "Summary", icon: "text.alignleft")
 
             ScrollView {
                 Text(state.text.isEmpty ? "…" : state.text)
@@ -81,24 +90,23 @@ private struct SummaryView: View {
                     .textSelection(.enabled)
                     .foregroundStyle(state.text.isEmpty ? .secondary : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
+                    .padding(12)
             }
-            .background(Color(nsColor: .textBackgroundColor))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-            )
-            .cornerRadius(6)
+            .mmTextArea()
 
             HStack {
                 Button("Copy") { state.onCopy() }
+                    .buttonStyle(MMPrimaryButtonStyle())
                     .disabled(state.text.isEmpty)
+                    .opacity(state.text.isEmpty ? 0.5 : 1.0)
                 Spacer()
                 Button("Close") { state.onClose() }
+                    .buttonStyle(MMGhostButtonStyle())
                     .keyboardShortcut(.cancelAction)
             }
         }
-        .padding(14)
-        .frame(minWidth: 520, minHeight: 360)
+        .padding(MMSpace.lg)
+        .frame(minWidth: 560, minHeight: 420)
+        .mmPanelBackground()
     }
 }

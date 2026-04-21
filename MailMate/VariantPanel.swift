@@ -8,8 +8,6 @@ final class VariantStreamState: ObservableObject {
     @Published var isStreaming = true
     @Published var errorMessage: String?
 
-    /// When non-nil, the panel switches to edit mode showing this text in an
-    /// editable text area. Setting back to nil returns to the cards.
     @Published var editing: EditingSelection?
 
     struct EditingSelection: Equatable {
@@ -18,10 +16,6 @@ final class VariantStreamState: ObservableObject {
     }
 }
 
-/// Floating panel that shows three reply variants. Cards fill in live as the
-/// stream arrives. The window delegate fires `onClose` whenever the window
-/// closes (× button, Cancel, or a `close()` call) so callers can cancel any
-/// in-flight work.
 @MainActor
 final class VariantPanel: NSObject, NSWindowDelegate {
     private var window: NSWindow?
@@ -55,7 +49,8 @@ final class VariantPanel: NSObject, NSWindowDelegate {
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.level = .floating
-        window.setContentSize(NSSize(width: 900, height: 500))
+        window.titlebarAppearsTransparent = true
+        window.setContentSize(NSSize(width: 960, height: 560))
         window.center()
         window.delegate = self
         self.window = window
@@ -84,26 +79,33 @@ final class VariantPanel: NSObject, NSWindowDelegate {
 
 private struct VariantPickerView: View {
     @ObservedObject var state: VariantStreamState
-    /// Called with the final text when the user commits a pick (either
-    /// directly from a card or after editing).
     let onUse: (String) -> Void
     let onCancel: () -> Void
 
     var body: some View {
-        if let editing = state.editing {
-            EditView(
-                label: editing.label,
-                initial: editing.text,
-                onUse: { edited in onUse(edited) },
-                onBack: { state.editing = nil }
-            )
-        } else {
-            PickView(state: state,
-                     onEdit: { label, text in
-                         state.editing = .init(label: label, text: text)
-                     },
-                     onCancel: onCancel)
+        ZStack {
+            Group {
+                if let editing = state.editing {
+                    EditView(
+                        label: editing.label,
+                        initial: editing.text,
+                        onUse: { edited in onUse(edited) },
+                        onBack: { state.editing = nil }
+                    )
+                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+                } else {
+                    PickView(state: state,
+                             onEdit: { label, text in
+                                 withAnimation(.snappy(duration: 0.25)) {
+                                     state.editing = .init(label: label, text: text)
+                                 }
+                             },
+                             onCancel: onCancel)
+                    .transition(.opacity.combined(with: .move(edge: .leading)))
+                }
+            }
         }
+        .mmPanelBackground()
     }
 }
 
@@ -121,8 +123,23 @@ private struct PickView: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: MMSpace.md) {
             HStack(spacing: 12) {
+                MMBrandGlyph(size: 26)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Pick a reply").font(MMFont.title)
+                    Text("Short / Standard / Detailed — streaming")
+                        .font(MMFont.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if state.isStreaming {
+                    ProgressView().controlSize(.small)
+                }
+            }
+            .padding(.top, 4)
+
+            HStack(spacing: MMSpace.sm) {
                 ForEach(cards.indices, id: \.self) { idx in
                     VariantCard(
                         label: cards[idx].label,
@@ -133,25 +150,26 @@ private struct PickView: View {
                     )
                 }
             }
+
             HStack(spacing: 8) {
                 if state.isStreaming {
-                    ProgressView().controlSize(.small)
-                    Text("Generating… (press 1/2/3 to pick)")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text("Generating… (press 1 / 2 / 3 to pick)")
+                        .font(MMFont.caption).foregroundStyle(.secondary)
                 } else {
-                    Text("Press 1/2/3 to pick, edit if needed, then ⌘↩ to paste.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text("Press 1 / 2 / 3 to pick, edit if needed, then ⌘↩ to paste.")
+                        .font(MMFont.caption).foregroundStyle(.secondary)
                 }
                 if let err = state.errorMessage {
-                    Text(err).font(.caption).foregroundStyle(.red)
+                    MMPill(text: "error", color: .red)
+                    Text(err).font(MMFont.caption).foregroundStyle(.red).lineLimit(1)
                 }
                 Spacer()
                 Button("Cancel", action: onCancel)
+                    .buttonStyle(MMGhostButtonStyle())
                     .keyboardShortcut(.cancelAction)
             }
         }
-        .padding(16)
-        .frame(minWidth: 600, minHeight: 380)
+        .padding(MMSpace.lg)
     }
 }
 
@@ -163,19 +181,15 @@ private struct VariantCard: View {
     let onUse: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(label.uppercased())
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .tracking(1.5)
+                MMSectionLabel(text: label)
                 Spacer()
                 Text(shortcut)
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 16, height: 16)
-                    .background(Color.secondary.opacity(0.15))
-                    .cornerRadius(4)
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white)
+                    .frame(width: 20, height: 20)
+                    .background(Circle().fill(LinearGradient.mmBrand))
             }
 
             ScrollView {
@@ -184,23 +198,20 @@ private struct VariantCard: View {
                     .textSelection(.enabled)
                     .foregroundStyle(text.isEmpty ? .secondary : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
+                    .padding(10)
             }
-            .background(Color(nsColor: .textBackgroundColor))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-            )
-            .cornerRadius(6)
+            .mmTextArea()
 
             Button(action: onUse) {
                 Text("Use this")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(MMPrimaryButtonStyle())
             .keyboardShortcut(KeyEquivalent(Character(shortcut)), modifiers: [])
             .disabled(text.isEmpty)
+            .opacity(text.isEmpty ? 0.5 : 1.0)
         }
+        .mmCard()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -222,36 +233,31 @@ private struct EditView: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: MMSpace.md) {
             HStack {
-                Text(label.uppercased())
-                    .font(.caption).foregroundStyle(.secondary).tracking(1.5)
+                MMSectionLabel(text: label)
                 Spacer()
                 Text("⌘↩ to paste · esc to go back")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(MMFont.caption).foregroundStyle(.secondary)
             }
 
             TextEditor(text: $text)
                 .font(.system(.body))
-                .padding(6)
-                .background(Color(nsColor: .textBackgroundColor))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                )
-                .cornerRadius(6)
+                .padding(8)
+                .mmTextArea()
 
             HStack {
                 Button("← Back", action: onBack)
+                    .buttonStyle(MMGhostButtonStyle())
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Paste into Mail") { onUse(text) }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(MMPrimaryButtonStyle())
                     .keyboardShortcut(.return, modifiers: .command)
                     .disabled(text.isEmpty)
+                    .opacity(text.isEmpty ? 0.5 : 1.0)
             }
         }
-        .padding(16)
-        .frame(minWidth: 600, minHeight: 380)
+        .padding(MMSpace.lg)
     }
 }

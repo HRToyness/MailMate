@@ -52,7 +52,8 @@ final class TaskCapturePanel: NSObject, NSWindowDelegate {
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.level = .floating
-        window.setContentSize(NSSize(width: 560, height: 520))
+        window.titlebarAppearsTransparent = true
+        window.setContentSize(NSSize(width: 600, height: 560))
         window.center()
         window.delegate = self
         self.window = window
@@ -308,38 +309,47 @@ private struct TaskCapturePanelView: View {
     @ObservedObject var state: TaskCaptureState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            header
-
-            switch state.phase {
-            case .idle, .recording:
-                VStack {
-                    Spacer()
-                    HStack { Spacer(); recordButton; Spacer() }
-                    Spacer()
+        VStack(alignment: .leading, spacing: MMSpace.md) {
+            HStack(spacing: 12) {
+                MMBrandGlyph(size: 26)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Dictate a task").font(MMFont.title)
+                    header
                 }
-            case .transcribing, .extracting:
-                VStack(alignment: .leading, spacing: 8) {
-                    if !state.transcript.isEmpty {
-                        sectionLabel("Transcript")
-                        Text(state.transcript)
-                            .font(.body).foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(8)
-                            .background(Color(nsColor: .textBackgroundColor))
-                            .cornerRadius(6)
-                    }
-                }
-                .frame(maxHeight: .infinity, alignment: .top)
-            case .ready, .saving, .saved, .error:
-                TaskFormView(state: state)
+                Spacer()
             }
 
-            Spacer(minLength: 0)
+            Group {
+                switch state.phase {
+                case .idle, .recording:
+                    VStack {
+                        Spacer()
+                        HStack { Spacer(); recordButton; Spacer() }
+                        Spacer()
+                    }
+                case .transcribing, .extracting:
+                    VStack(alignment: .leading, spacing: MMSpace.sm) {
+                        if !state.transcript.isEmpty {
+                            MMSectionLabel(text: "Transcript", icon: "waveform")
+                            Text(state.transcript)
+                                .font(.body).foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(10)
+                                .mmTextArea()
+                        }
+                    }
+                    .frame(maxHeight: .infinity, alignment: .top)
+                case .ready, .saving, .saved, .error:
+                    TaskFormView(state: state)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
             footer
         }
-        .padding(16)
-        .frame(minWidth: 520, minHeight: 460)
+        .padding(MMSpace.lg)
+        .frame(minWidth: 560, minHeight: 480)
+        .mmPanelBackground()
     }
 
     @ViewBuilder
@@ -347,33 +357,33 @@ private struct TaskCapturePanelView: View {
         switch state.phase {
         case .idle:
             Text("Press record and say what you want to do.")
-                .foregroundStyle(.secondary)
+                .font(MMFont.caption).foregroundStyle(.secondary)
         case .recording:
-            HStack(spacing: 10) {
-                Circle().fill(.red).frame(width: 10, height: 10)
+            HStack(spacing: 8) {
+                Circle().fill(.red).frame(width: 8, height: 8)
                 Text(String(format: "%02d:%02d", Int(state.elapsed) / 60, Int(state.elapsed) % 60))
-                    .monospacedDigit()
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 3).fill(Color.secondary.opacity(0.15))
-                        RoundedRectangle(cornerRadius: 3).fill(Color.accentColor)
+                        Capsule().fill(Color.primary.opacity(0.12))
+                        Capsule().fill(LinearGradient.mmBrand)
                             .frame(width: geo.size.width * CGFloat(state.level))
                     }
                 }
-                .frame(height: 14)
+                .frame(width: 140, height: 8)
             }
         case .transcribing:
-            HStack { ProgressView().controlSize(.small); Text("Transcribing…").foregroundStyle(.secondary) }
+            HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Transcribing…").font(MMFont.caption).foregroundStyle(.secondary) }
         case .extracting:
-            HStack { ProgressView().controlSize(.small); Text("Extracting task…").foregroundStyle(.secondary) }
+            HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Extracting task…").font(MMFont.caption).foregroundStyle(.secondary) }
         case .ready:
-            Text("Review the task, then Save.").foregroundStyle(.secondary)
+            Text("Review the task, then Save.").font(MMFont.caption).foregroundStyle(.secondary)
         case .saving:
-            HStack { ProgressView().controlSize(.small); Text("Saving…").foregroundStyle(.secondary) }
+            HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Saving…").font(MMFont.caption).foregroundStyle(.secondary) }
         case .saved:
-            Text("Saved.").foregroundStyle(.green)
+            Text("Saved.").font(MMFont.caption).foregroundStyle(.green)
         case .error(let msg):
-            Text(msg).foregroundStyle(.red)
+            Text(msg).font(MMFont.caption).foregroundStyle(.red)
         }
     }
 
@@ -383,18 +393,26 @@ private struct TaskCapturePanelView: View {
             switch state.phase {
             case .idle, .recording, .transcribing, .extracting, .saving, .saved:
                 Spacer()
-                Button("Cancel", action: state.onCancel).keyboardShortcut(.cancelAction)
+                Button("Cancel", action: state.onCancel)
+                    .buttonStyle(MMGhostButtonStyle())
+                    .keyboardShortcut(.cancelAction)
             case .ready:
                 Button("Re-record", action: state.onRerecord)
+                    .buttonStyle(MMGhostButtonStyle())
                 Spacer()
-                Button("Cancel", action: state.onCancel).keyboardShortcut(.cancelAction)
+                Button("Cancel", action: state.onCancel)
+                    .buttonStyle(MMGhostButtonStyle())
+                    .keyboardShortcut(.cancelAction)
                 Button("Save to Reminders", action: state.onSave)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(MMPrimaryButtonStyle())
                     .keyboardShortcut(.return, modifiers: .command)
             case .error:
                 Button("Re-record", action: state.onRerecord)
+                    .buttonStyle(MMGhostButtonStyle())
                 Spacer()
-                Button("Cancel", action: state.onCancel).keyboardShortcut(.cancelAction)
+                Button("Cancel", action: state.onCancel)
+                    .buttonStyle(MMGhostButtonStyle())
+                    .keyboardShortcut(.cancelAction)
             }
         }
     }
@@ -406,18 +424,18 @@ private struct TaskCapturePanelView: View {
         return Button(action: { isRecording ? state.onStop() : state.onStart() }) {
             ZStack {
                 Circle()
-                    .fill(isRecording ? Color.red : Color.red.opacity(0.8))
-                    .frame(width: 96, height: 96)
+                    .fill(isRecording
+                          ? LinearGradient(colors: [.red, .pink], startPoint: .top, endPoint: .bottom)
+                          : LinearGradient.mmBrand)
+                    .frame(width: 104, height: 104)
+                    .shadow(color: (isRecording ? Color.red : MMColor.indigo).opacity(0.4),
+                            radius: 22, y: 6)
                 Image(systemName: isRecording ? "stop.fill" : "mic.fill")
-                    .font(.system(size: 40, weight: .bold))
+                    .font(.system(size: 42, weight: .bold))
                     .foregroundStyle(.white)
             }
         }
         .buttonStyle(.plain)
-    }
-
-    private func sectionLabel(_ s: String) -> some View {
-        Text(s.uppercased()).font(.caption).foregroundStyle(.secondary).tracking(1.3)
     }
 }
 
@@ -426,41 +444,44 @@ private struct TaskFormView: View {
     @State private var hasDue: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("TASK").font(.caption).foregroundStyle(.secondary).tracking(1.3)
+        VStack(alignment: .leading, spacing: 14) {
+            MMSectionLabel(text: "Task", icon: "checkmark.circle")
 
-            TextField("Title", text: $state.task.title)
-                .textFieldStyle(.roundedBorder)
+            VStack(alignment: .leading, spacing: 12) {
+                TextField("Title", text: $state.task.title)
+                    .textFieldStyle(.roundedBorder)
 
-            TextField("Notes (optional)", text: $state.task.notes, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .lineLimit(3...6)
+                TextField("Notes (optional)", text: $state.task.notes, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .lineLimit(3...6)
 
-            Toggle("Has due date", isOn: $hasDue)
-                .onChange(of: hasDue) { _, new in
-                    if new, state.task.dueDate == nil {
-                        state.task.dueDate = Date().addingTimeInterval(86_400) // +1 day
-                    } else if !new {
-                        state.task.dueDate = nil
+                Toggle("Has due date", isOn: $hasDue)
+                    .onChange(of: hasDue) { _, new in
+                        if new, state.task.dueDate == nil {
+                            state.task.dueDate = Date().addingTimeInterval(86_400)
+                        } else if !new {
+                            state.task.dueDate = nil
+                        }
+                    }
+                    .onAppear { hasDue = state.task.dueDate != nil }
+
+                if hasDue {
+                    DatePicker("Due",
+                               selection: Binding(get: { state.task.dueDate ?? Date() },
+                                                  set: { state.task.dueDate = $0 }),
+                               displayedComponents: [.date, .hourAndMinute])
+                }
+
+                if !state.availableLists.isEmpty {
+                    Picker("List", selection: Binding(get: { state.task.listName ?? "" },
+                                                      set: { state.task.listName = $0.isEmpty ? nil : $0 })) {
+                        ForEach(state.availableLists, id: \.self) { name in
+                            Text(name).tag(name)
+                        }
                     }
                 }
-                .onAppear { hasDue = state.task.dueDate != nil }
-
-            if hasDue {
-                DatePicker("Due",
-                           selection: Binding(get: { state.task.dueDate ?? Date() },
-                                              set: { state.task.dueDate = $0 }),
-                           displayedComponents: [.date, .hourAndMinute])
             }
-
-            if !state.availableLists.isEmpty {
-                Picker("List", selection: Binding(get: { state.task.listName ?? "" },
-                                                  set: { state.task.listName = $0.isEmpty ? nil : $0 })) {
-                    ForEach(state.availableLists, id: \.self) { name in
-                        Text(name).tag(name)
-                    }
-                }
-            }
+            .mmCard()
         }
     }
 }

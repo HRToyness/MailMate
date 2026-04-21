@@ -16,6 +16,7 @@ SOURCES=(
   MailMate/MailMateApp.swift
   MailMate/AppDelegate.swift
   MailMate/Log.swift
+  MailMate/DesignSystem.swift
   MailMate/StatusController.swift
   MailMate/ReplyDrafter.swift
   MailMate/MailBridge.swift

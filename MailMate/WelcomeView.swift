@@ -77,20 +77,7 @@ private struct WelcomeView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 14) {
-                Image(systemName: "envelope.badge")
-                    .font(.system(size: 40, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(width: 64, height: 64)
-                    .background(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.36, green: 0.43, blue: 0.95),
-                                Color(red: 0.55, green: 0.32, blue: 0.90),
-                            ],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                MMBrandGlyph(size: 64)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Welcome to MailMate").font(.title2).bold()
@@ -134,14 +121,16 @@ private struct WelcomeView: View {
 
             HStack {
                 Button("Later") { onClose() }
+                    .buttonStyle(MMGhostButtonStyle())
                 Spacer()
                 Button("Open Settings") { onOpenSettings() }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(MMPrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
             }
         }
         .padding(22)
         .frame(minWidth: 520, minHeight: 460)
+        .mmPanelBackground()
     }
 
     @ViewBuilder
