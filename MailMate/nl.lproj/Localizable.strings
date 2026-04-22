@@ -6,6 +6,18 @@
 "Triage inbox…" = "Inbox triage…";
 "Edit rules…" = "Regels bewerken…";
 "Edit per-client overrides…" = "Klantspecifieke regels bewerken…";
+"Generate rules from sent mail…" = "Regels genereren op basis van verzonden mail…";
+"MailMate — Rules from your sent mail" = "MailMate — Regels op basis van verzonden mail";
+"Proposed rules.md" = "Voorgestelde rules.md";
+"Reading your sent folder…" = "Verzonden map aan het lezen…";
+"Analyzing %lld sent emails…" = "Bezig met analyseren van %lld verzonden mails…";
+"Based on %lld recent sent messages. Review, edit, and save." = "Gebaseerd op %lld recent verzonden berichten. Bekijk, pas aan en sla op.";
+"Copy to clipboard" = "Kopieer naar klembord";
+"Replace my rules…" = "Vervang mijn regels…";
+"Replace your current rules?" = "Huidige regels vervangen?";
+"This overwrites the rules file at ~/Library/Application Support/MailMate/rules.md with the proposed rules. Your current rules will be lost." = "Dit overschrijft het regelbestand in ~/Library/Application Support/MailMate/rules.md met de voorgestelde regels. Je huidige regels gaan verloren.";
+"Replace" = "Vervang";
+"Copied" = "Gekopieerd";
 "Settings…" = "Instellingen…";
 "Quit MailMate" = "MailMate afsluiten";
 

@@ -98,6 +98,17 @@
 			<key>NSPortName</key>
 			<string>MailMate</string>
 		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>MailMate/Generate rules from sent mail</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>generateRulesFromSent</string>
+			<key>NSPortName</key>
+			<string>MailMate</string>
+		</dict>
 	</array>
 </dict>
 </plist>

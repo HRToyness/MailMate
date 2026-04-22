@@ -6,6 +6,18 @@
 "Triage inbox…" = "Triage inbox…";
 "Edit rules…" = "Edit rules…";
 "Edit per-client overrides…" = "Edit per-client overrides…";
+"Generate rules from sent mail…" = "Generate rules from sent mail…";
+"MailMate — Rules from your sent mail" = "MailMate — Rules from your sent mail";
+"Proposed rules.md" = "Proposed rules.md";
+"Reading your sent folder…" = "Reading your sent folder…";
+"Analyzing %lld sent emails…" = "Analyzing %lld sent emails…";
+"Based on %lld recent sent messages. Review, edit, and save." = "Based on %lld recent sent messages. Review, edit, and save.";
+"Copy to clipboard" = "Copy to clipboard";
+"Replace my rules…" = "Replace my rules…";
+"Replace your current rules?" = "Replace your current rules?";
+"This overwrites the rules file at ~/Library/Application Support/MailMate/rules.md with the proposed rules. Your current rules will be lost." = "This overwrites the rules file at ~/Library/Application Support/MailMate/rules.md with the proposed rules. Your current rules will be lost.";
+"Replace" = "Replace";
+"Copied" = "Copied";
 "Settings…" = "Settings…";
 "Quit MailMate" = "Quit MailMate";
 

@@ -37,6 +37,7 @@ SOURCES=(
   MailMate/TaskCapture.swift
   MailMate/CalendarContext.swift
   MailMate/TriagePanel.swift
+  MailMate/RulesProposalPanel.swift
 )
 
 rm -rf "$APP" "$TMP"

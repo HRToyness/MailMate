@@ -405,6 +405,157 @@ final class ReplyDrafter {
         }
     }
 
+    // MARK: - Rules proposal flow
+
+    private let rulesProposalPanel = RulesProposalPanel()
+    private var rulesProposalTask: Task<Void, Never>?
+
+    func runRulesProposal() async {
+        Log.write("=== runRulesProposal() start ===")
+        let kind = ProviderFactory.current
+        let client: ReplyProvider
+        do {
+            client = try ProviderFactory.make(kind)
+        } catch let ProviderError.missingAPIKey(k) {
+            notify("Set your \(k.displayName) API key in Settings.")
+            return
+        } catch {
+            notify("Error: \(error.localizedDescription)")
+            return
+        }
+
+        rulesProposalPanel.state.phase = .loading
+        rulesProposalPanel.state.proposedRules = ""
+        rulesProposalPanel.state.scannedCount = 0
+        rulesProposalPanel.state.saveError = nil
+        rulesProposalPanel.state.savedFlash = nil
+        rulesProposalPanel.state.onClose = { [weak self] in
+            self?.rulesProposalTask?.cancel()
+            self?.rulesProposalPanel.close()
+        }
+        rulesProposalPanel.state.onCopy = { [weak self] in
+            self?.rulesProposalCopy()
+        }
+        rulesProposalPanel.state.onReplace = { [weak self] in
+            self?.rulesProposalReplace()
+        }
+        rulesProposalPanel.show()
+
+        rulesProposalTask?.cancel()
+        rulesProposalTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let sent = try MailBridge.fetchSentMessages(maxCount: 25)
+                self.rulesProposalPanel.state.scannedCount = sent.count
+                if sent.isEmpty {
+                    self.rulesProposalPanel.state.phase = .error("No sent messages found. Try again after you've sent a few emails.")
+                    return
+                }
+
+                let system = """
+                You are inferring a user's personal writing style from their outgoing email. You will get the SUBJECT + BODY of their last \(sent.count) sent messages. Produce a rules.md file in the format shown below.
+
+                Guidelines:
+                - Output VALID markdown only. No code fences, no preamble, no commentary before or after the markdown.
+                - Detect the dominant language(s). If the user writes in Dutch AND English, note both.
+                - Extract observable patterns ONLY: tone (formal vs informal, "je" vs "u"), greeting/closing preferences, typical length, how they handle commitments (do they commit to dates/prices directly, or do they hedge?), whether they use a signature, whether they tend to ask questions, etc.
+                - Do NOT invent rules that have no evidence in the messages.
+                - Keep it concise — 30 lines max. Short bullet points.
+
+                Required structure:
+                # MailMate Rules
+
+                ## Who I am
+                - (what you can infer about role / sectors / clients, or a best guess, or omit if none)
+
+                ## Tone
+                - (observations about formality, greeting style, use of first names, etc.)
+
+                ## Language
+                - (which language(s) they write in, any notable mixed use)
+
+                ## Never
+                - (things they clearly avoid — e.g. "Never commit to specific dates without flagging [CONFIRM]" if you see that pattern)
+
+                ## Prefer
+                - (length preference, question-answering style, paragraph structure, etc.)
+
+                ## Signature
+                - (state whether Mail.app handles signature; say "Do not write a signature. Mail.app appends mine automatically." unless they clearly type signatures themselves)
+                """
+
+                let user = sent.enumerated().map { idx, m in
+                    "### Sent message \(idx + 1)\nDate: \(m.dateSent)\nSubject: \(m.subject)\n\n\(m.body)"
+                }.joined(separator: "\n\n")
+
+                let raw = try await client.oneShot(system: system, user: user)
+                if Task.isCancelled { return }
+
+                // Strip ```markdown fences if the model added them despite the instruction.
+                var cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                if cleaned.hasPrefix("```") {
+                    if let nl = cleaned.firstIndex(of: "\n") {
+                        cleaned = String(cleaned[cleaned.index(after: nl)...])
+                    }
+                    if cleaned.hasSuffix("```") { cleaned = String(cleaned.dropLast(3)) }
+                    cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+
+                self.rulesProposalPanel.state.proposedRules = cleaned
+                self.rulesProposalPanel.state.phase = .ready
+                Log.write("Rules proposal ready: \(cleaned.count) chars from \(sent.count) sent messages")
+            } catch is CancellationError {
+                Log.write("Rules proposal cancelled")
+            } catch {
+                Log.write("Rules proposal error: \(error.localizedDescription)")
+                self.rulesProposalPanel.state.phase = .error(error.localizedDescription)
+            }
+            self.rulesProposalTask = nil
+        }
+    }
+
+    private func rulesProposalCopy() {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(rulesProposalPanel.state.proposedRules, forType: .string)
+        rulesProposalPanel.state.savedFlash = "Copied"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            if self?.rulesProposalPanel.state.savedFlash == "Copied" {
+                self?.rulesProposalPanel.state.savedFlash = nil
+            }
+        }
+    }
+
+    private func rulesProposalReplace() {
+        let alert = NSAlert()
+        alert.messageText = NSLocalizedString("Replace your current rules?", comment: "")
+        alert.informativeText = NSLocalizedString("This overwrites the rules file at ~/Library/Application Support/MailMate/rules.md with the proposed rules. Your current rules will be lost.", comment: "")
+        alert.addButton(withTitle: NSLocalizedString("Replace", comment: ""))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return }
+
+        do {
+            try rulesProposalPanel.state.proposedRules.write(
+                to: RulesLoader.rulesFileURL,
+                atomically: true,
+                encoding: .utf8
+            )
+            rulesProposalPanel.state.saveError = nil
+            rulesProposalPanel.state.savedFlash = "Saved"
+            Log.write("Rules replaced from proposal (len=\(rulesProposalPanel.state.proposedRules.count))")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                if self?.rulesProposalPanel.state.savedFlash == "Saved" {
+                    self?.rulesProposalPanel.state.savedFlash = nil
+                }
+            }
+        } catch {
+            rulesProposalPanel.state.saveError = "Save failed: \(error.localizedDescription)"
+            Log.write("Rules save failed: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Inbox triage flow
 
     private let triagePanel = TriagePanel()

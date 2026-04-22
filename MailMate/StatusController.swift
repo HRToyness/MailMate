@@ -74,6 +74,12 @@ class StatusController: NSObject {
         overridesItem.target = self
         menu.addItem(overridesItem)
 
+        let proposalItem = NSMenuItem(title: NSLocalizedString("Generate rules from sent mail…", comment: ""),
+                                      action: #selector(proposeRules),
+                                      keyEquivalent: "")
+        proposalItem.target = self
+        menu.addItem(proposalItem)
+
         let settingsItem = NSMenuItem(title: NSLocalizedString("Settings…", comment: ""),
                                       action: #selector(openSettings),
                                       keyEquivalent: ",")
@@ -161,6 +167,12 @@ class StatusController: NSObject {
 
     @objc private func editOverrides() {
         RulesLoader.openInEditor(overrides: true)
+    }
+
+    @objc private func proposeRules() {
+        Task { @MainActor in
+            await ReplyDrafter.shared.runRulesProposal()
+        }
     }
 
     @objc private func openSettings() {

@@ -58,4 +58,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             await ReplyDrafter.shared.runTriage()
         }
     }
+
+    @objc func generateRulesFromSent(_ pboard: NSPasteboard,
+                                     userData: String,
+                                     error: NSErrorPointer) {
+        Task { @MainActor in
+            await ReplyDrafter.shared.runRulesProposal()
+        }
+    }
 }

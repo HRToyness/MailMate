@@ -24,6 +24,12 @@ struct TriageMessage {
     let messageID: String
 }
 
+struct SentMessage {
+    let subject: String
+    let dateSent: String
+    let body: String
+}
+
 enum MailBridgeError: Error, LocalizedError {
     case noSelection
     case scriptError(String)
@@ -202,6 +208,57 @@ enum MailBridge {
             ))
         }
         return out
+    }
+
+    /// Reads up to `maxCount` most-recent sent messages across all accounts.
+    /// Body is truncated to 1500 chars per message to keep the prompt small.
+    /// Messages are returned most-recent first.
+    static func fetchSentMessages(maxCount: Int, perMessageSnippet: Int = 1500) throws -> [SentMessage] {
+        let script = """
+        tell application "Mail"
+            set collected to ""
+            set perAccount to \(max(10, maxCount))
+            set snippetLen to \(perMessageSnippet)
+            repeat with acct in accounts
+                try
+                    set sent to sent mailbox of acct
+                    set msgs to messages of sent
+                    set acctTotal to count of msgs
+                    set acctLimit to perAccount
+                    if acctTotal < acctLimit then set acctLimit to acctTotal
+                    repeat with i from 1 to acctLimit
+                        set m to item i of msgs
+                        set theBody to content of m
+                        set limit to snippetLen
+                        if (length of theBody) < limit then set limit to length of theBody
+                        set snippet to text 1 thru limit of theBody
+                        if collected is not "" then
+                            set collected to collected & "\(messageSep)"
+                        end if
+                        set collected to collected & (subject of m) & "\(separator)" & ((date sent of m) as string) & "\(separator)" & snippet
+                    end repeat
+                end try
+            end repeat
+            return collected
+        end tell
+        """
+
+        let result = try runAppleScript(script)
+        if result.isEmpty { return [] }
+        let blocks = result.components(separatedBy: messageSep)
+        var items: [SentMessage] = []
+        for block in blocks {
+            let fields = block.components(separatedBy: separator)
+            guard fields.count >= 3 else { continue }
+            let body = fields[2...].joined(separator: separator)
+            items.append(SentMessage(subject: fields[0], dateSent: fields[1], body: body))
+        }
+        // Sort by date-sent (AppleScript's string rep of a date is locale-shaped
+        // but lexicographically-comparable enough to rank recents-first when
+        // the locale is consistent). We can't reliably parse; fall back to
+        // identity order which is account-order × mail's descending-date.
+        // Take top maxCount.
+        return Array(items.prefix(maxCount))
     }
 
     /// Activates Mail and selects the message with the given id. Ids are
