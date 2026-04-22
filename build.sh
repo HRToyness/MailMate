@@ -94,10 +94,31 @@ for lproj in MailMate/*.lproj; do
   cp -R "$lproj" "$RES_DIR/"
 done
 
-codesign --force --sign - \
-  --entitlements MailMate/MailMate.entitlements \
-  --identifier com.toynessit.MailMate \
-  "$APP"
+# Detect a Developer ID signing identity in the user's keychain. If present,
+# sign with hardened runtime + timestamp (required for notarization).
+# Otherwise fall back to ad-hoc signing — the app still runs locally but
+# won't be notarizable.
+SIGNING_IDENTITY="${MAILMATE_SIGNING_IDENTITY:-}"
+if [ -z "$SIGNING_IDENTITY" ]; then
+  SIGNING_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null \
+    | awk -F'"' '/Developer ID Application/ {print $2; exit}')"
+fi
+
+if [ -n "$SIGNING_IDENTITY" ]; then
+  echo "Signing with Developer ID: $SIGNING_IDENTITY"
+  codesign --force --deep --sign "$SIGNING_IDENTITY" \
+    --options runtime \
+    --timestamp \
+    --entitlements MailMate/MailMate.entitlements \
+    --identifier com.toynessit.MailMate \
+    "$APP"
+else
+  echo "No Developer ID found; signing ad-hoc (not notarizable)."
+  codesign --force --sign - \
+    --entitlements MailMate/MailMate.entitlements \
+    --identifier com.toynessit.MailMate \
+    "$APP"
+fi
 
 codesign --verify --verbose=2 "$APP"
 
