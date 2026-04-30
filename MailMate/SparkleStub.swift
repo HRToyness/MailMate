@@ -1,3 +1,7 @@
+// Compiled only when Sparkle isn't on the import path — keeps the
+// "Check for updates…" menu item wired up in builds that ship without
+// the updater (e.g. an Xcode build without vendor/ configured).
+#if !canImport(Sparkle)
 import AppKit
 
 /// No-op stub used when vendor/Sparkle.framework is not present at build
@@ -16,3 +20,4 @@ final class SparkleUpdater {
         alert.runModal()
     }
 }
+#endif

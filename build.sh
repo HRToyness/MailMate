@@ -41,16 +41,20 @@ SOURCES=(
 )
 
 # Sparkle framework is vendored in vendor/Sparkle.framework. It's optional —
-# if the framework isn't present we drop the Sparkle integration source and
-# stub out the auto-updater so ad-hoc builds still compile.
+# both source files are included unconditionally; #if canImport(Sparkle)
+# guards inside SparkleIntegration.swift / SparkleStub.swift switch which
+# implementation is active based on whether the framework is on the import
+# path. HAS_SPARKLE only governs the link flags and bundling below.
+SOURCES+=(
+  MailMate/SparkleIntegration.swift
+  MailMate/SparkleStub.swift
+)
 SPARKLE_DIR="vendor/Sparkle.framework"
 HAS_SPARKLE=false
 if [ -d "$SPARKLE_DIR" ]; then
   HAS_SPARKLE=true
-  SOURCES+=(MailMate/SparkleIntegration.swift)
   echo "Sparkle found at $SPARKLE_DIR"
 else
-  SOURCES+=(MailMate/SparkleStub.swift)
   echo "Sparkle not found — building with no-op auto-updater stub."
 fi
 
@@ -95,14 +99,24 @@ lipo -info "$BIN_DIR/MailMate"
 rm -rf "$TMP"
 
 # Info.plist: expand $(...) placeholders for standalone (non-Xcode) build.
+# MARKETING_VERSION + CURRENT_PROJECT_VERSION are sourced from project.yml
+# so Xcode and CLI builds stay in lockstep.
+MARKETING_VERSION="$(awk -F'"' '/^[[:space:]]*MARKETING_VERSION:/ {print $2; exit}' project.yml)"
+CURRENT_PROJECT_VERSION="$(awk -F'"' '/^[[:space:]]*CURRENT_PROJECT_VERSION:/ {print $2; exit}' project.yml)"
+if [ -z "$MARKETING_VERSION" ] || [ -z "$CURRENT_PROJECT_VERSION" ]; then
+  echo "Error: could not read MARKETING_VERSION / CURRENT_PROJECT_VERSION from project.yml"
+  exit 1
+fi
+echo "Embedding version $MARKETING_VERSION (build $CURRENT_PROJECT_VERSION)"
+
 sed \
   -e 's|\$(DEVELOPMENT_LANGUAGE)|en|g' \
   -e 's|\$(EXECUTABLE_NAME)|MailMate|g' \
   -e 's|\$(PRODUCT_BUNDLE_IDENTIFIER)|com.toynessit.MailMate|g' \
   -e 's|\$(PRODUCT_NAME)|MailMate|g' \
   -e 's|\$(PRODUCT_BUNDLE_PACKAGE_TYPE)|APPL|g' \
-  -e 's|\$(MARKETING_VERSION)|1.0.0|g' \
-  -e 's|\$(CURRENT_PROJECT_VERSION)|1|g' \
+  -e "s|\$(MARKETING_VERSION)|$MARKETING_VERSION|g" \
+  -e "s|\$(CURRENT_PROJECT_VERSION)|$CURRENT_PROJECT_VERSION|g" \
   -e 's|\$(MACOSX_DEPLOYMENT_TARGET)|14.0|g' \
   MailMate/Info.plist > "$APP/Contents/Info.plist"
 

@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Package MailMate.app into a distributable .dmg with:
-# - Applications symlink (drag-to-install target)
-# - Setup.command script that strips the quarantine attribute and launches
-# - README with first-run instructions
-# Requires build.sh to have been run first.
+# Package MailMate.app into a distributable .dmg with a polished install
+# window: branded background, positioned MailMate.app + Applications icons,
+# hidden toolbar/sidebar. Requires build.sh to have been run first.
+#
+# The previous Setup.command + README workaround for unsigned apps is gone:
+# now that the app is Developer-ID-signed and notarized, no quarantine
+# stripping is needed.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -14,82 +16,80 @@ if [ ! -d "$APP" ]; then
   exit 1
 fi
 
+BG_SRC="MailMate/dmg-background.png"
+if [ ! -f "$BG_SRC" ]; then
+  echo "Generating DMG background..."
+  swift tools/generate-dmg-background.swift "$BG_SRC"
+fi
+
 STAGING="build/dmg-staging"
+RW_DMG="build/MailMate-Installer-rw.dmg"
 DMG_NAME="MailMate-Installer"
 DMG_PATH="build/${DMG_NAME}.dmg"
 VOLUME_NAME="MailMate"
+MOUNT_POINT="/Volumes/$VOLUME_NAME"
 
-rm -rf "$STAGING" "$DMG_PATH"
-mkdir -p "$STAGING"
+rm -rf "$STAGING" "$DMG_PATH" "$RW_DMG"
+mkdir -p "$STAGING/.background"
 
 cp -R "$APP" "$STAGING/"
 ln -s /Applications "$STAGING/Applications"
+cp "$BG_SRC" "$STAGING/.background/background.png"
 
-cat > "$STAGING/Setup.command" <<'EOF'
-#!/usr/bin/env bash
-# One-time setup: remove macOS quarantine flag from MailMate so it can
-# launch without Gatekeeper warnings, then open the app.
-set -euo pipefail
-
-APP="/Applications/MailMate.app"
-
-if [ ! -d "$APP" ]; then
-  echo "MailMate.app is not in /Applications."
-  echo
-  echo "Drag MailMate.app into the Applications folder first, then run this script again."
-  echo
-  read -n 1 -s -r -p "Press any key to close..."
-  exit 1
-fi
-
-echo "Removing quarantine flag on $APP"
-xattr -rd com.apple.quarantine "$APP" 2>/dev/null || true
-
-echo "Launching MailMate"
-open "$APP"
-
-echo
-echo "Done. You can close this window."
-sleep 2
-EOF
-chmod +x "$STAGING/Setup.command"
-
-cat > "$STAGING/README.txt" <<'EOF'
-MailMate - first-run setup
-==========================
-
-1. Drag MailMate.app into the "Applications" folder.
-
-2. Double-click "Setup.command".
-   (If macOS blocks it, right-click -> Open -> Open.)
-
-   This strips the quarantine flag and launches MailMate once.
-
-3. Look for the envelope icon in your menu bar. Click it ->
-   Settings... -> paste your Anthropic and/or OpenAI API key.
-
-4. On first use, macOS will ask for permissions:
-   - Automation (to read Mail and open reply windows)
-   - Accessibility (to paste the reply - System Settings ->
-     Privacy & Security -> Accessibility -> enable MailMate)
-   - Microphone (only when using Dictate a reply)
-
-5. Optional: bind keyboard shortcuts in System Settings ->
-   Keyboard -> Keyboard Shortcuts -> Services ->
-   MailMate/Draft AI reply  and  MailMate/Dictate AI reply
-
-Source: https://github.com/HRToyness/MailMate
-EOF
-
-echo "Creating $DMG_PATH ..."
+# Build a writable DMG so we can apply Finder window properties via
+# AppleScript before flattening to a compressed read-only image.
+echo "Creating writable DMG..."
 hdiutil create \
   -volname "$VOLUME_NAME" \
   -srcfolder "$STAGING" \
   -ov \
-  -format UDZO \
-  "$DMG_PATH" >/dev/null
+  -format UDRW \
+  "$RW_DMG" >/dev/null
 
 rm -rf "$STAGING"
+
+# Defensive: unmount any pre-existing volume of the same name.
+if [ -d "$MOUNT_POINT" ]; then
+  hdiutil detach "$MOUNT_POINT" -force >/dev/null 2>&1 || true
+fi
+
+echo "Mounting writable DMG to apply window layout..."
+hdiutil attach "$RW_DMG" -readwrite -noautoopen >/dev/null
+
+# Give Finder a beat to register the new volume before scripting it.
+sleep 1
+
+osascript <<APPLESCRIPT
+tell application "Finder"
+    tell disk "$VOLUME_NAME"
+        open
+        set current view of container window to icon view
+        set toolbar visible of container window to false
+        set statusbar visible of container window to false
+        set sidebar width of container window to 0
+        set the bounds of container window to {200, 200, 740, 580}
+        set viewOptions to the icon view options of container window
+        set arrangement of viewOptions to not arranged
+        set icon size of viewOptions to 96
+        set text size of viewOptions to 12
+        set background picture of viewOptions to file ".background:background.png"
+        set position of item "MailMate.app" of container window to {135, 170}
+        set position of item "Applications" of container window to {405, 170}
+        close
+        open
+        update without registering applications
+        delay 1
+    end tell
+end tell
+APPLESCRIPT
+
+# Force layout to disk before unmounting.
+sync
+hdiutil detach "$MOUNT_POINT" >/dev/null
+
+echo "Compressing to read-only DMG..."
+hdiutil convert "$RW_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG_PATH" >/dev/null
+rm -f "$RW_DMG"
 
 # If we have a Developer ID cert, sign the DMG itself (required for
 # notarization of the whole thing). Fall back to no-op otherwise.

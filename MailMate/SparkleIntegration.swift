@@ -1,3 +1,8 @@
+// Real Sparkle-backed implementation. The #if guard means this file is
+// inert when the Sparkle framework isn't on the import path (e.g. an
+// Xcode build without vendor/Sparkle.framework configured), and
+// SparkleStub.swift takes over.
+#if canImport(Sparkle)
 import AppKit
 import Sparkle
 
@@ -45,3 +50,4 @@ final class SparkleUpdater: NSObject, SPUUpdaterDelegate {
         Log.write("Sparkle error: \(error.localizedDescription)")
     }
 }
+#endif

@@ -15,7 +15,7 @@ enum ProviderKind: String, CaseIterable, Identifiable {
 
     var defaultModel: String {
         switch self {
-        case .anthropic: return "claude-sonnet-4-5"
+        case .anthropic: return "claude-sonnet-4-6"
         case .openai: return "gpt-4.1-mini"
         }
     }

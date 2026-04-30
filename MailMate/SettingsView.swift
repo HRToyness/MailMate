@@ -49,7 +49,7 @@ struct SettingsView: View {
             Section("Anthropic (Claude)") {
                 SecureField("API key", text: $anthropicKey)
                 TextField("Model", text: $anthropicModel)
-                    .help("e.g. claude-sonnet-4-5, claude-opus-4-7")
+                    .help("e.g. claude-sonnet-4-6, claude-opus-4-7")
                 HStack {
                     Button("Test connection") {
                         Task { await runTest(.anthropic) }
