@@ -15,6 +15,8 @@ struct SettingsView: View {
     @State private var includeThread: Bool = UserDefaults.standard.bool(forKey: "include_thread")
     @State private var includeCalendar: Bool = UserDefaults.standard.bool(forKey: "include_calendar")
     @State private var launchAtLogin: Bool = LoginItem.isEnabled
+    @State private var syncRulesICloud: Bool = UserDefaults.standard.bool(forKey: "sync_rules_icloud")
+    @State private var iCloudMigrationError: String?
 
     @State private var savedFlash = false
     @State private var saveError: String?
@@ -92,6 +94,22 @@ struct SettingsView: View {
                         let ok = LoginItem.setEnabled(newValue)
                         if !ok { launchAtLogin = LoginItem.isEnabled }
                     }
+                Toggle("Sync rules via iCloud Drive", isOn: $syncRulesICloud)
+                    .help("Stores rules.md and rules-overrides.md in ~/Library/Mobile Documents/com~apple~CloudDocs/MailMate/ so they follow you across Macs signed into the same iCloud account. Requires iCloud Drive to be enabled in System Settings.")
+                    .onChange(of: syncRulesICloud) { _, newValue in
+                        do {
+                            try RulesLoader.migrateRules(toICloud: newValue)
+                            UserDefaults.standard.set(newValue, forKey: "sync_rules_icloud")
+                            iCloudMigrationError = nil
+                        } catch {
+                            iCloudMigrationError = error.localizedDescription
+                            // Revert the toggle if migration failed.
+                            syncRulesICloud = !newValue
+                        }
+                    }
+                if let err = iCloudMigrationError {
+                    Text(err).font(.caption).foregroundColor(.red)
+                }
             }
 
             HStack {

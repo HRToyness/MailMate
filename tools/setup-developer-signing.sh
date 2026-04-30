@@ -56,10 +56,9 @@ else
   echo "  - An app-specific password from https://account.apple.com"
   echo
   echo "Running: xcrun notarytool store-credentials"
+  echo "(notarytool will prompt for Apple ID, password, then Team ID.)"
   echo
   xcrun notarytool store-credentials "$PROFILE" \
-    --apple-id "" \
-    --team-id "${TEAM_ID:-}" \
     || {
       echo
       echo "notarytool didn't complete. You can re-run this script, or run directly:"

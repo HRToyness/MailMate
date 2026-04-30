@@ -12,6 +12,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.servicesProvider = self
         NSUpdateDynamicServices()
 
+        // Kick off the Sparkle updater so it can check for updates in the
+        // background using the SUFeedURL from Info.plist.
+        _ = SparkleUpdater.shared
+
         // Show the welcome window on first run.
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 400_000_000)

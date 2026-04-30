@@ -21,4 +21,9 @@ Package.resolved
 # Logs
 *.log
 
+# Sparkle framework + helper binaries (downloaded locally; not checked in).
+vendor/Sparkle.framework/
+vendor/Sparkle-bin/
+vendor/*.tar.xz
+
 # Claude Code / superpowers session artifacts are stored in ~/.claude, not here

@@ -87,6 +87,14 @@ class StatusController: NSObject {
         menu.addItem(settingsItem)
 
         menu.addItem(.separator())
+
+        let updateItem = NSMenuItem(title: NSLocalizedString("Check for updates…", comment: ""),
+                                    action: #selector(checkForUpdates),
+                                    keyEquivalent: "")
+        updateItem.target = self
+        menu.addItem(updateItem)
+
+        menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: NSLocalizedString("Quit MailMate", comment: ""),
                                 action: #selector(NSApplication.terminate(_:)),
                                 keyEquivalent: "q"))
@@ -173,6 +181,10 @@ class StatusController: NSObject {
         Task { @MainActor in
             await ReplyDrafter.shared.runRulesProposal()
         }
+    }
+
+    @objc private func checkForUpdates() {
+        SparkleUpdater.shared.checkForUpdates()
     }
 
     @objc private func openSettings() {

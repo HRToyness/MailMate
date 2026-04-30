@@ -31,6 +31,12 @@
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>MailMate reads the selected Mail message and creates a reply draft.</string>
+	<key>SUFeedURL</key>
+	<string>https://hrtoyness.github.io/MailMate/appcast.xml</string>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUPublicEDKey</key>
+	<string>5yn5p18ja4Zqg5aeTVjhcLu+WMQC8jieWGEgfdIoWP0=</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>MailMate uses your calendar to suggest specific free times when replying to scheduling emails.</string>
 	<key>NSCalendarsUsageDescription</key>

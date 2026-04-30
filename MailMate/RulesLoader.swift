@@ -1,19 +1,83 @@
 import AppKit
 
 enum RulesLoader {
-    static var rulesFileURL: URL {
+    /// Directory used for rules storage. When `sync_rules_icloud` is true in
+    /// UserDefaults, points at `~/Library/Mobile Documents/com~apple~CloudDocs/MailMate/`
+    /// so rules follow the user across their Macs via iCloud Drive.
+    /// Otherwise `~/Library/Application Support/MailMate/` (local only).
+    static var rulesDirectoryURL: URL {
+        let dir: URL
+        if UserDefaults.standard.bool(forKey: "sync_rules_icloud"), let iCloud = iCloudDriveURL {
+            dir = iCloud
+        } else {
+            let appSupport = FileManager.default.urls(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask
+            ).first!
+            dir = appSupport.appendingPathComponent("MailMate", isDirectory: true)
+        }
+        try? FileManager.default.createDirectory(at: dir,
+                                                 withIntermediateDirectories: true)
+        return dir
+    }
+
+    /// iCloud Drive's `MailMate` subfolder if iCloud Drive is available on
+    /// this Mac; nil if the user hasn't enabled iCloud Drive.
+    static var iCloudDriveURL: URL? {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let docs = home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs",
+                                               isDirectory: true)
+        guard FileManager.default.fileExists(atPath: docs.path) else { return nil }
+        return docs.appendingPathComponent("MailMate", isDirectory: true)
+    }
+
+    /// Local (App Support) directory, regardless of current iCloud toggle.
+    /// Used during migration.
+    static var localDirectoryURL: URL {
         let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
         ).first!
-        let appDir = appSupport.appendingPathComponent("MailMate", isDirectory: true)
-        try? FileManager.default.createDirectory(at: appDir,
-                                                 withIntermediateDirectories: true)
-        return appDir.appendingPathComponent("rules.md")
+        return appSupport.appendingPathComponent("MailMate", isDirectory: true)
+    }
+
+    static var rulesFileURL: URL {
+        rulesDirectoryURL.appendingPathComponent("rules.md")
     }
 
     static var overridesFileURL: URL {
-        rulesFileURL.deletingLastPathComponent().appendingPathComponent("rules-overrides.md")
+        rulesDirectoryURL.appendingPathComponent("rules-overrides.md")
+    }
+
+    /// Copies rules files between local and iCloud locations when the user
+    /// toggles the pref. Called from Settings. Overwrites the destination if
+    /// files already exist on the destination side; the user explicitly opted
+    /// in by flipping the switch.
+    static func migrateRules(toICloud: Bool) throws {
+        guard let icloud = iCloudDriveURL else {
+            throw NSError(domain: "MailMate", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "iCloud Drive is not enabled on this Mac. Turn it on in System Settings → Apple ID → iCloud → iCloud Drive."])
+        }
+        let local = localDirectoryURL
+        let fm = FileManager.default
+        try fm.createDirectory(at: icloud, withIntermediateDirectories: true)
+        try fm.createDirectory(at: local, withIntermediateDirectories: true)
+
+        let (source, destination) = toICloud
+            ? (local, icloud)
+            : (icloud, local)
+
+        for filename in ["rules.md", "rules-overrides.md"] {
+            let src = source.appendingPathComponent(filename)
+            let dst = destination.appendingPathComponent(filename)
+            if fm.fileExists(atPath: src.path) {
+                if fm.fileExists(atPath: dst.path) {
+                    try fm.removeItem(at: dst)
+                }
+                try fm.copyItem(at: src, to: dst)
+                Log.write("Rules migrated: \(src.lastPathComponent) → \(destination.path)")
+            }
+        }
     }
 
     static let defaultRules = """
