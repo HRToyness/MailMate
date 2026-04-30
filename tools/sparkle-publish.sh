@@ -65,17 +65,14 @@ ITEM="    <item>
     </item>"
 
 # Insert the new item right after the comment marker in docs/appcast.xml.
+# (BSD awk on macOS rejects newlines in -v values, so we route through a
+# temp file + sed `r`. Newest items end up directly below the marker on
+# each run, giving reverse-chronological order — what Sparkle expects.)
 APPCAST="docs/appcast.xml"
-TMP="$(mktemp)"
-awk -v item="$ITEM" '
-  /<!-- <item> entries inserted here/ {
-    print item
-    print $0
-    next
-  }
-  { print }
-' "$APPCAST" > "$TMP"
-mv "$TMP" "$APPCAST"
+ITEM_FILE="$(mktemp)"
+printf '%s\n' "$ITEM" > "$ITEM_FILE"
+sed -i '' "/<!-- <item> entries inserted here/r $ITEM_FILE" "$APPCAST"
+rm -f "$ITEM_FILE"
 
 echo
 echo "Added $TAG to $APPCAST."

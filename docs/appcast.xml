@@ -1,0 +1,30 @@
+<?xml version="1.0" standalone="yes"?>
+<!--
+  Sparkle appcast for MailMate.
+  This file is populated by tools/sparkle-publish.sh on each release.
+  Until the first signed release is published it is intentionally empty.
+-->
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     version="2.0">
+  <channel>
+    <title>MailMate</title>
+    <link>https://hrtoyness.github.io/MailMate/appcast.xml</link>
+    <description>MailMate updates</description>
+    <language>en</language>
+    <!-- <item> entries inserted here by tools/sparkle-publish.sh -->
+    <item>
+      <title>MailMate 1.0.0</title>
+      <link>https://hrtoyness.github.io/MailMate/</link>
+      <sparkle:version>1.0.0</sparkle:version>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <description><![CDATA[First production-ready release. Installs without any Gatekeeper warnings, without the xattr / right-click-Open dance. Auto-updates itself from here on out via Sparkle. Includes iCloud Drive rules sync and the Homebrew cask publisher.]]></description>
+      <pubDate>Thu, 30 Apr 2026 09:41:50 +0000</pubDate>
+      <enclosure url="https://github.com/HRToyness/MailMate/releases/download/v1.0.0/MailMate-Installer.dmg"
+                 sparkle:os="macos"
+                 sparkle:minimumSystemVersion="14.0"
+                 sparkle:edSignature="f/SeCbgEMeGrSY1zoogKcFc/ldyQwPMo59GxFyY5ggsjTSavQwWw3IiSVEJWuN0pbw7lUoHbYfxfhyb1QDO9Cw==" length="2568004"
+                 type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>
