@@ -159,16 +159,17 @@
       View on GitHub
     </a>
   </div>
-  <div class="small">macOS 14+ · Apple Silicon or Intel · signed &amp; notarized · 2.5 MB installer · v1.0.0</div>
+  <div class="small">or <code style="background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:5px;">brew install --cask hrtoyness/tap/mailmate</code></div>
+  <div class="small">macOS 14+ · Apple Silicon or Intel · signed &amp; notarized · 2.8 MB installer · v1.0.1</div>
 </header>
 
 <section style="padding-top: 0;">
   <div style="background: linear-gradient(180deg, rgba(92,110,242,0.18), rgba(140,81,229,0.18)); border-radius: 14px; padding: 16px 20px; display:flex; align-items:center; gap:14px;">
     <div style="flex-shrink:0; width:32px; height:32px; border-radius:8px; background: linear-gradient(180deg, var(--indigo), var(--violet)); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;">✨</div>
     <div style="flex:1;">
-      <div style="font-weight:600; color:var(--text);">New in 1.0.0 — signed, notarized, auto-updating</div>
+      <div style="font-weight:600; color:var(--text);">New in 1.0.1 — Homebrew cask + polished installer</div>
       <div style="color:var(--muted); font-size:14px;">
-        First production-ready release. Installs without Gatekeeper warnings — no <code style="background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px;">xattr</code> or right-click-Open dance. Future versions install themselves in-place via Sparkle. Now also syncs your rules across Macs through iCloud Drive.
+        Install with <code style="background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px;">brew install --cask hrtoyness/tap/mailmate</code>, or grab the DMG — the installer window now shows you exactly where to drag the app, and the Setup.command relic is gone (the app is signed and notarized, so it isn't needed anymore). Default Anthropic model bumped to <code style="background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px;">claude-sonnet-4-6</code>.
       </div>
     </div>
   </div>
@@ -275,13 +276,24 @@
 
 <section>
   <h2>Install in under a minute</h2>
+  <p style="color:var(--muted); margin: 0 0 14px;">Two ways to install — pick one:</p>
+  <div style="background: var(--card); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 16px 20px; margin-bottom: 18px;">
+    <div style="font-weight:600; margin-bottom:6px;">Via Homebrew</div>
+    <pre style="margin: 0; background: rgba(0,0,0,0.25); padding: 10px 12px; border-radius: 8px; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--text);"><code>brew install --cask hrtoyness/tap/mailmate</code></pre>
+  </div>
+  <div style="background: var(--card); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 16px 20px;">
+    <div style="font-weight:600; margin-bottom:6px;">Or download the DMG</div>
+    <ol class="steps" style="margin: 0;">
+      <li>
+        <a href="https://github.com/HRToyness/MailMate/releases/latest/download/MailMate-Installer.dmg">Download the DMG</a> and double-click it.
+      </li>
+      <li>
+        Drag <b>MailMate.app</b> onto the <b>Applications</b> shortcut, then open it from Applications. No Gatekeeper prompt — the app is signed and notarized by Apple.
+      </li>
+    </ol>
+  </div>
+  <h3 style="margin: 28px 0 10px; font-size: 18px;">Then, once installed</h3>
   <ol class="steps">
-    <li>
-      <a href="https://github.com/HRToyness/MailMate/releases/latest/download/MailMate-Installer.dmg">Download the DMG</a> and double-click it.
-    </li>
-    <li>
-      Drag <b>MailMate.app</b> into the <b>Applications</b> shortcut, then open it from Applications. No Gatekeeper prompt — the app is signed and notarized by Apple.
-    </li>
     <li>
       Click the envelope icon in your menu bar → <b>Settings…</b> → paste your <b>Anthropic</b> or <b>OpenAI</b> API key.
     </li>
