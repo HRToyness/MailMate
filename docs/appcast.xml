@@ -16,7 +16,7 @@
     <item>
       <title>MailMate 1.0.1</title>
       <link>https://hrtoyness.github.io/MailMate/</link>
-      <sparkle:version>1.0.1</sparkle:version>
+      <sparkle:version>1</sparkle:version>
       <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
       <description><![CDATA[Polished installer (no more Setup.command), Xcode-build redeclaration fix, MARKETING_VERSION single source of truth in project.yml, default Anthropic model bumped to claude-sonnet-4-6, README cleanup.]]></description>
       <pubDate>Thu, 30 Apr 2026 15:09:57 +0000</pubDate>
@@ -29,7 +29,7 @@
     <item>
       <title>MailMate 1.0.0</title>
       <link>https://hrtoyness.github.io/MailMate/</link>
-      <sparkle:version>1.0.0</sparkle:version>
+      <sparkle:version>1</sparkle:version>
       <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
       <description><![CDATA[First production-ready release. Installs without any Gatekeeper warnings, without the xattr / right-click-Open dance. Auto-updates itself from here on out via Sparkle. Includes iCloud Drive rules sync and the Homebrew cask publisher.]]></description>
       <pubDate>Thu, 30 Apr 2026 09:41:50 +0000</pubDate>
