@@ -153,37 +153,89 @@ enum MailBridge {
         Log.write("Clipboard set with reply text (len=\(text.count)); saved \(saved.count) prior item(s)")
 
         try openReplyWindow()
-        Thread.sleep(forTimeInterval: 1.2)
+        // App activation is partly async on Sonoma/Sequoia, so a fixed sleep
+        // is unreliable — sometimes Mail isn't frontmost yet and ⌘V lands in
+        // whichever app currently is. Poll instead.
+        let waited = waitForMailReplyWindowReady(timeout: 3.0)
+        Log.write("Mail reply ready after \(String(format: "%.2f", waited))s")
         try pasteClipboard()
 
-        // Give Mail time to read from the pasteboard before we restore the
-        // previous contents. 0.6s is enough for a typical paste.
-        Thread.sleep(forTimeInterval: 0.6)
+        // Give Mail time to read the pasteboard before we restore the prior
+        // contents. ⌘V is fire-and-forget; we can't observe consumption.
+        Thread.sleep(forTimeInterval: 1.0)
         restorePasteboard(pb, items: saved)
         Log.write("Clipboard restored")
     }
 
+    private static func waitForMailReplyWindowReady(timeout: TimeInterval) -> TimeInterval {
+        let probe = """
+        tell application "System Events"
+            if not (exists (process "Mail")) then return "no-process"
+            tell process "Mail"
+                if not frontmost then return "not-front"
+                if (count of windows) is 0 then return "no-window"
+                return "ready"
+            end tell
+        end tell
+        """
+        let start = Date()
+        let deadline = start.addingTimeInterval(timeout)
+        while Date() < deadline {
+            if let result = try? runAppleScript(probe), result == "ready" {
+                return Date().timeIntervalSince(start)
+            }
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        Log.write("waitForMailReplyWindowReady timed out after \(timeout)s")
+        return timeout
+    }
+
     /// Reads up to `maxCount` most-recent unread messages from Mail's unified
     /// inbox. Each message includes a short body snippet for triage context.
+    ///
+    /// Avoids the `messages of inbox whose read status is false` form because
+    /// Mail's `whose` clause forces a full scan of every message in the unified
+    /// inbox — on a busy mailbox this routinely takes 60–90s. We instead walk
+    /// the most recent `scanLimit` messages by index (Mail returns them in
+    /// received-date-descending order) and break early once we have enough
+    /// unread items. Body fetch is wrapped in its own `try` so a slow remote
+    /// IMAP body doesn't fail the whole batch.
     static func fetchRecentUnread(maxCount: Int) throws -> [TriageMessage] {
+        let scanLimit = 300
+        let snippetLen = 300
         let script = """
         tell application "Mail"
             set collected to ""
+            set found to 0
+            set targetCount to \(maxCount)
             try
-                set allUnread to (messages of inbox whose read status is false)
-                set total to count of allUnread
-                set limit to \(maxCount)
-                if total < limit then set limit to total
-                repeat with i from 1 to limit
-                    set m to item i of allUnread
-                    set theBody to content of m
-                    set snippetLen to 500
-                    if (length of theBody) < snippetLen then set snippetLen to length of theBody
-                    set snippet to text 1 thru snippetLen of theBody
-                    if collected is not "" then
-                        set collected to collected & "\(messageSep)"
-                    end if
-                    set collected to collected & (sender of m) & "\(separator)" & (subject of m) & "\(separator)" & ((date received of m) as string) & "\(separator)" & snippet & "\(separator)" & ((id of m) as string)
+                set inboxRef to inbox
+                set total to count of messages of inboxRef
+                set scanLimit to \(scanLimit)
+                if total < scanLimit then set scanLimit to total
+                repeat with i from 1 to scanLimit
+                    if found is greater than or equal to targetCount then exit repeat
+                    try
+                        set m to message i of inboxRef
+                        if read status of m is false then
+                            set theSender to sender of m
+                            set theSubject to subject of m
+                            set theDate to (date received of m) as string
+                            set theID to (id of m) as string
+                            set snippet to ""
+                            try
+                                set theBody to content of m
+                                set snipLen to \(snippetLen)
+                                if (length of theBody) < snipLen then set snipLen to length of theBody
+                                set snippet to text 1 thru snipLen of theBody
+                            end try
+                            if collected is not "" then
+                                set collected to collected & "\(messageSep)"
+                            end if
+                            set collected to collected & theSender & "\(separator)" & theSubject & "\(separator)" & theDate & "\(separator)" & snippet & "\(separator)" & theID
+                            set found to found + 1
+                        end if
+                    end try
                 end repeat
             end try
             return collected
@@ -305,9 +357,15 @@ enum MailBridge {
     }
 
     static func pasteClipboard() throws {
+        // Address the keystroke at Mail's process explicitly. The previous
+        // version sent ⌘V to whatever was frontmost, which silently missed
+        // when Mail hadn't fully come forward yet.
         let script = """
         tell application "System Events"
-            keystroke "v" using {command down}
+            tell process "Mail"
+                set frontmost to true
+                keystroke "v" using {command down}
+            end tell
         end tell
         """
         _ = try runAppleScript(script)

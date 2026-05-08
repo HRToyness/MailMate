@@ -595,7 +595,11 @@ final class ReplyDrafter {
         triageTask = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
+                let fetchStart = Date()
+                Log.write("Triage: starting fetchRecentUnread")
                 let messages = try MailBridge.fetchRecentUnread(maxCount: 20)
+                let fetchSecs = Date().timeIntervalSince(fetchStart)
+                Log.write("Triage: fetchRecentUnread done in \(String(format: "%.2f", fetchSecs))s, count=\(messages.count)")
                 self.triagePanel.state.sourceCount = messages.count
                 if messages.isEmpty {
                     self.triagePanel.state.phase = .ready
