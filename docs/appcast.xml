@@ -14,6 +14,19 @@
     <language>en</language>
     <!-- <item> entries inserted here by tools/sparkle-publish.sh -->
     <item>
+      <title>MailMate 1.0.2</title>
+      <link>https://hrtoyness.github.io/MailMate/</link>
+      <sparkle:version>2</sparkle:version>
+      <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
+      <description><![CDATA[Three fixes that quietly didn't work in 1.0.1: microphone permission now actually grants audio access (entitlement was missing), paste into Mail no longer drops text on Sonoma/Sequoia (polls for Mail frontmost instead of fixed sleep), and inbox triage no longer hangs on busy mailboxes (avoids the inbox-wide whose-scan).]]></description>
+      <pubDate>Fri, 08 May 2026 15:21:56 +0000</pubDate>
+      <enclosure url="https://github.com/HRToyness/MailMate/releases/download/v1.0.2/MailMate-Installer.dmg"
+                 sparkle:os="macos"
+                 sparkle:minimumSystemVersion="14.0"
+                 sparkle:edSignature="MfTpT8Bbe2NN4RAxVwuDUh+nUpmDnDtADq1Ds0pwfoun1hRt9vAAlXc0YF9jZ051r6QKUAMU5iHDQR6EVLi2Bw==" length="2989123"
+                 type="application/octet-stream" />
+    </item>
+    <item>
       <title>MailMate 1.0.1</title>
       <link>https://hrtoyness.github.io/MailMate/</link>
       <sparkle:version>1</sparkle:version>
