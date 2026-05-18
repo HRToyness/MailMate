@@ -160,16 +160,16 @@
     </a>
   </div>
   <div class="small">or <code style="background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:5px;">brew install --cask hrtoyness/tap/mailmate</code></div>
-  <div class="small">macOS 14+ · Apple Silicon or Intel · signed &amp; notarized · 2.9 MB installer · v1.0.2</div>
+  <div class="small">macOS 14+ · Apple Silicon or Intel · signed &amp; notarized · 2.9 MB installer · v1.0.3</div>
 </header>
 
 <section style="padding-top: 0;">
   <div style="background: linear-gradient(180deg, rgba(92,110,242,0.18), rgba(140,81,229,0.18)); border-radius: 14px; padding: 16px 20px; display:flex; align-items:center; gap:14px;">
     <div style="flex-shrink:0; width:32px; height:32px; border-radius:8px; background: linear-gradient(180deg, var(--indigo), var(--violet)); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;">✨</div>
     <div style="flex:1;">
-      <div style="font-weight:600; color:var(--text);">New in 1.0.2 — dictation, paste, and triage actually work</div>
+      <div style="font-weight:600; color:var(--text);">New in 1.0.3 — dictation works with AirPods</div>
       <div style="color:var(--muted); font-size:14px;">
-        Three things that quietly didn't on 1.0.1 are fixed: microphone permission now actually grants access (the hardened-runtime build was missing the audio-input entitlement), pasting drafted replies into Mail no longer drops text on Sonoma/Sequoia, and Inbox triage no longer hangs on busy mailboxes. If you're on 1.0.1 with auto-update enabled, Sparkle will offer 1.0.2 on its next check.
+        Voice dictation and voice tasks failed with “Recorder setup failed: record() returned false” whenever AirPods (or any Bluetooth headset) were your microphone — the recorder pinned a 16 kHz format the Bluetooth route can’t provide. It now uses the input device’s native format and works across built-in, Bluetooth, and USB mics. If you’re on 1.0.2 with auto-update enabled, Sparkle will offer 1.0.3 on its next check.
       </div>
     </div>
   </div>
