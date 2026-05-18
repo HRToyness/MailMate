@@ -54,11 +54,14 @@ final class AudioRecorder: NSObject, ObservableObject {
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("mailmate-\(UUID().uuidString).m4a")
 
+        // Don't pin sample rate / channel count: on macOS AVAudioRecorder
+        // can't reconfigure a Bluetooth input route (e.g. AirPods, which run
+        // HFP at 16/24 kHz) to an arbitrary requested format, so record()
+        // returns false. Letting it negotiate the active input device's
+        // native format works across built-in, Bluetooth, and USB mics.
+        // Whisper accepts any rate (the .m4a is uploaded untouched).
         let settings: [String: Any] = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 16_000,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderBitRateKey: 64_000,
             AVEncoderAudioQualityKey: AVAudioQuality.medium.rawValue,
         ]
 
